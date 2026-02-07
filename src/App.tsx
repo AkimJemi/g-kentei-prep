@@ -191,8 +191,15 @@ export default function App() {
       <div className="flex flex-col h-full overflow-hidden relative">
         <NeuralBackground />
         {/* Universal Header with Shortcuts */}
-        <header className="px-6 py-4 flex items-center justify-between border-b border-white/[0.04] bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
-          <div className="flex items-center gap-12">
+        <header className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between border-b border-white/[0.04] bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
+          <div className="flex items-center gap-4 md:gap-12">
+                <div 
+                  onClick={() => handleNavigate('dashboard')}
+                  className="lg:hidden w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-blue-600 flex items-center justify-center shadow-lg cursor-pointer"
+                >
+                  <Cpu className="w-5 h-5 text-white" />
+                </div>
+
                 <button
                   onClick={() => handleNavigate('notifications')}
                   className={clsx(
@@ -205,7 +212,7 @@ export default function App() {
                     <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-slate-950 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                   )}
                 </button>
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-1">
               {[
                 { id: 'dashboard', icon: LayoutIcon, label: t('home'), shortcut: 'H' },
                 { id: 'study', icon: Database, label: t('study'), shortcut: 'S' },
@@ -229,11 +236,11 @@ export default function App() {
             </nav>
           </div>
           
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             {currentUser && (
-              <div className="hidden sm:flex flex-col items-end mr-2">
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">{currentUser.nickname}</span>
-                <span className="text-[7px] font-mono text-accent uppercase tracking-[0.2em]">{currentUser.role === 'admin' ? t('admin') : 'USER'} PROTOCOL</span>
+              <div className="flex flex-col items-end mr-1 md:mr-2">
+                <span className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-widest">{currentUser.nickname}</span>
+                <span className="hidden xs:block text-[7px] font-mono text-accent uppercase tracking-[0.2em]">{currentUser.role === 'admin' ? t('admin') : 'USER'} PROTOCOL</span>
               </div>
             )}
             <button 
@@ -242,7 +249,7 @@ export default function App() {
               title={t('logout')}
             >
               <LogOut className="w-4 h-4" />
-              <span className="absolute -bottom-1 right-0 text-[7px] font-black text-slate-700/60 group-hover:text-red-500/40 transition-colors">[ESC]</span>
+              <span className="hidden md:block absolute -bottom-1 right-0 text-[7px] font-black text-slate-700/60 group-hover:text-red-500/40 transition-colors">[ESC]</span>
             </button>
             <div className="text-right hidden sm:block">
               <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest animate-pulse flex items-center gap-2 justify-end">
@@ -256,7 +263,7 @@ export default function App() {
 
         <main 
           ref={scrollContainerRef as any}
-          className="flex-1 overflow-y-auto p-6 relative z-10"
+          className="flex-1 overflow-y-auto p-4 md:p-6 relative z-10 pb-24 md:pb-6"
         >
           <AnimatePresence mode="wait">
             <motion.div
@@ -297,20 +304,49 @@ export default function App() {
               {view === 'flashcards' && <FlashcardView onBack={() => handleNavigate('study')} />}
               {view === 'contact' && <ContactView />}
               {view === 'submit' && <SubmitQuestionView />}
-            </motion.div>
-          </AnimatePresence>
-          <AnimatePresence>
-            {toast.type && (
-              <Toast 
-                  message={toast.message} 
-                  type={toast.type} 
-                  onClose={() => setToast({ message: '', type: null })} 
-              />
-            )}
-          </AnimatePresence>
+            <AnimatePresence>
+              {toast.type && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast({ message: '', type: null })} 
+                />
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </AnimatePresence>
         </main>
 
-        <footer className="px-6 py-6 border-t border-white/[0.04] bg-slate-900/30 relative z-10">
+        {/* Mobile Bottom Navigation */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-950/80 backdrop-blur-xl border-t border-white/[0.04] px-6 py-3 flex items-center justify-around z-[100] pb-safe">
+          {[
+            { id: 'dashboard', icon: LayoutIcon, label: t('home') },
+            { id: 'study', icon: Database, label: t('study') },
+            { id: 'stats', icon: BarChart3, label: t('metrics') },
+            { id: 'history', icon: Clock, label: t('logs') },
+            ...(isAdmin ? [{ id: 'admin', icon: Settings, label: t('admin') }] : [])
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleNavigate(item.id as any)}
+              className={clsx(
+                "flex flex-col items-center gap-1 transition-all",
+                view === item.id ? "text-accent" : "text-slate-500"
+              )}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="text-[9px] font-black uppercase tracking-wider">{item.label}</span>
+              {view === item.id && (
+                <motion.div 
+                  layoutId="activeTabMobile"
+                  className="w-1 h-1 bg-accent rounded-full mt-0.5"
+                />
+              )}
+            </button>
+          ))}
+        </nav>
+
+        <footer className="hidden md:block px-6 py-6 border-t border-white/[0.04] bg-slate-900/30 relative z-10">
           <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">

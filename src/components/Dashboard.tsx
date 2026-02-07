@@ -139,20 +139,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
         <motion.div variants={itemVariants} className="pt-8 flex flex-wrap justify-center gap-4">
           <button 
             onClick={onStartQuiz}
-            className="group relative px-10 py-5 bg-accent hover:bg-sky-400 text-primary font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(56,189,248,0.3)] transition-all duration-300 flex items-center space-x-3 active:scale-95"
+            className="group relative px-6 py-4 md:px-10 md:py-5 bg-accent hover:bg-sky-400 text-primary font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(56,189,248,0.3)] transition-all duration-300 flex items-center space-x-3 active:scale-95 text-sm md:text-base"
           >
             <Play className="w-5 h-5 fill-current" />
             <span>{t('engage_practice')}</span>
-            <span className="text-[10px] font-black text-primary/60 ml-2 group-hover:text-primary transition-colors">[E]</span>
+            <span className="hidden md:inline text-[10px] font-black text-primary/60 ml-2 group-hover:text-primary transition-colors">[E]</span>
           </button>
           
           <button 
             onClick={onViewStats}
-            className="group px-10 py-5 bg-slate-900 border border-slate-800 hover:border-slate-700 text-white font-black uppercase tracking-widest rounded-2xl transition-all duration-300 flex items-center space-x-3 active:scale-95 shadow-xl"
+            className="group px-6 py-4 md:px-10 md:py-5 bg-slate-900 border border-slate-800 hover:border-slate-700 text-white font-black uppercase tracking-widest rounded-2xl transition-all duration-300 flex items-center space-x-3 active:scale-95 shadow-xl text-sm md:text-base"
           >
             <Zap className="w-5 h-5 text-amber-500" />
             <span>{t('quick_analytics')}</span>
-            <span className="text-[10px] font-black text-slate-500 ml-2 group-hover:text-slate-300 transition-colors">[Q]</span>
+            <span className="hidden md:inline text-[10px] font-black text-slate-500 ml-2 group-hover:text-slate-300 transition-colors">[Q]</span>
           </button>
         </motion.div>
       </div>
