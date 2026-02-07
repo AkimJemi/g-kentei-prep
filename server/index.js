@@ -979,9 +979,12 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
-// SPA fallback - serve index.html for all non-API routes
+// Serve static files from the dist directory
 if (process.env.NODE_ENV === 'production') {
-  app.get(/(.*)/, (req, res) => {
+  app.use(express.static(join(__dirname, '../dist')));
+  
+  // SPA fallback - serve index.html for all non-API routes that aren't files
+  app.get('*', (req, res) => {
     res.sendFile(join(__dirname, '../dist/index.html'));
   });
 }
