@@ -21,7 +21,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
 
           <nav className="flex items-center space-x-6 text-sm font-medium">
-            <a href="#" className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors">
+            <a href="https://github.com/AkimJemi/g-kentei-prep" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors">
               <Github className="w-4 h-4" />
               <span className="hidden sm:inline">GitHub</span>
             </a>
