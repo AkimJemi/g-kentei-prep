@@ -1,6 +1,7 @@
 services:
   - type: web
-    name: g-kentei-prep
+    name: g-kentei-prep-app
     env: node
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
