@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, Github } from 'lucide-react';
+import { Brain, Github, MessageCircleQuestion, PlusCircle } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -21,6 +21,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
 
           <nav className="flex items-center space-x-6 text-sm font-medium">
+            <a href="https://github.com/AkimJemi/g-kentei-prep/issues/new?title=[Question]%20New%20Question%20Proposal&body=**Question:**%0A%0A**Options:**%0A1.%20%0A2.%20%0A3.%20%0A4.%20%0A%0A**Correct%20Answer:**%0A%0A**Explanation:**" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors">
+              <PlusCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Add Question</span>
+            </a>
+            <a href="https://github.com/AkimJemi/g-kentei-prep/issues/new?title=[Contact]%20Inquiry&body=**Topic:**%0A%0A**Details:**" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors">
+              <MessageCircleQuestion className="w-4 h-4" />
+              <span className="hidden sm:inline">Contact</span>
+            </a>
             <a href="https://github.com/AkimJemi/g-kentei-prep" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors">
               <Github className="w-4 h-4" />
               <span className="hidden sm:inline">GitHub</span>
