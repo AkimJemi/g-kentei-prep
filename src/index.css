@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #020617;
+  --color-secondary: #0f172a;
+  --color-accent: #38bdf8;
+  --color-success: #10b981;
+  --color-error: #f43f5e;
+
+  --font-sans: 'Outfit', 'Inter', sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-primary);
+    color: white;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+  }
+
+  .animate-scanline {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .animate-scanline::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom,
+        transparent,
+        rgba(56, 189, 248, 0.05) 50%,
+        transparent);
+    animation: scanline 4s linear infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}

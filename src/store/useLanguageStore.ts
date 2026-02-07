@@ -1,0 +1,161 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface LanguageState {
+    t: (key: string) => string;
+    language: 'ja';
+}
+
+const translations: Record<string, string> = {
+    engage_practice: '演習開始',
+    quick_analytics: '詳細分析',
+    weakness_protocol: '弱点補強',
+    neural_status: 'システム状態',
+    optimized: '最適化済み',
+    welcome_back: 'おかえりなさい',
+    initialize_sequence: '知識注入シークエンスを開始します。',
+    nodes_visited: '訪問済みノード',
+    efficiency: '学習効率',
+    system_evolution: 'システム進化',
+    full_system_calibration: '全システム校正',
+    all_topics: '全トピック',
+    full_system_desc: 'すべてのニューラルセクターに対して包括的なスキャンを実行します。',
+
+    core_logic: 'コアロジック',
+    legacy_logs: 'レガシーログ',
+    algorithmic_base: 'アルゴリズムベース',
+    neural_synthesis: 'ニューラル合成',
+    advanced_processing: '高度な処理',
+    applied_intelligence: '応用インテリジェンス',
+    societal_link: '社会的リンク',
+    numerical_kernel: '数値カーネル',
+    governance_protocols: 'ガバナンスプロトコル',
+    ethical_guardrails: '倫理的ガードレール',
+
+    select_sector: 'セクタ選択',
+    sector_definition: '対象の知識領域を選択してください。',
+    return_to_base: '戻る',
+    total_nodes: '総ノード数',
+
+    abort_scan: '戻る',
+    question: '問題',
+    verified: '検証済み',
+    breached: '違反検出',
+    root_analysis: 'ルート分析',
+    next_phase: '次へ',
+    prev_phase: '前へ',
+    reset: 'リセット',
+    voice_control: '音声制御',
+    options: '選択肢',
+
+    neural_logs: 'ニューラルログ',
+    wipe_archive: 'アーカイブ消去',
+    trace_log: 'トレースログ解析',
+    accessing_archives: 'アーカイブにアクセス中...',
+    empty_archive: 'アーカイブが空です',
+    empty_archive_desc: 'ニューラルログが検出されませんでした。セッションを完了して記録を開始してください。',
+    session_logs: 'セッションログ',
+    node_mastery: 'ノード習熟度',
+    input: '入力',
+    required: '正解',
+
+    system_analytics: 'システム分析',
+    global_accuracy: '総合精度',
+    neural_cycles: '学習サイクル',
+    error_density: 'エラー密度',
+    sector_proficiency: 'セクタ習熟度',
+    network_fragility: 'ネットワーク脆弱性',
+    recalibration_points: '再構成ポイント',
+    no_neural_data: '分析データなし',
+    no_neural_data_desc: '学習シーケンスを開始して、分析インサイトとパフォーマンス指標を生成してください。',
+
+    home: 'ホーム',
+    study: '学習',
+    logs: '履歴',
+    metrics: '分析',
+
+    cat_fundamentals: 'AIの基礎',
+    cat_trends: 'AIをめぐる動向',
+    cat_ml: '機械学習の概要',
+    cat_dl_basics: 'ディープラーニングの概要',
+    cat_dl_tech: 'ディープラーニングの手法',
+    cat_apps: 'ディープラーニングの応用例',
+    cat_social: 'AIの社会実装に向けて',
+    cat_math: '数理・統計',
+    cat_law: '法律・契約',
+    cat_ethics: '倫理・ガバナンス',
+
+    scan_complete: 'スキャン 완료',
+    matrix_coverage: 'マトリックス・カバレッジ',
+    precision: '精度',
+    node_count: 'ノード数',
+    avg_precision: '平均精度率',
+    completed_sessions: '完了セッション',
+    total_errors: '合計不正確ノード',
+    optimized_status: '最適化された神経状態',
+    sector_definition_long: '初期化する知識ドメインを選択してください。',
+
+    admin: '管理者',
+    encrypted_store: '暗号化データストア',
+    syllabus_version: 'シラバス: 2024年版',
+    copyright: 'G検定 対策 // ニューラル・インターフェース V4',
+    root_access: 'ルートアクセス',
+    system_monitoring: 'システム全体監視・プロトコル管理',
+    override_enabled: '強制操作有効',
+    total_protocols: '総プロトコル数',
+    system_cycles: 'システムサイクル',
+    global_precision: '全局精度',
+    data_points: 'データポイント',
+    active_profiles: '有効なニューラル・プロファイル',
+    identifier: '識別番号',
+    authority: '権限レベル',
+    link_date: '接続日時',
+    actions: '操作',
+    efficiency_matrix: '効率性マトリックス',
+    system_growth: 'システム拡張推移',
+    zero_profiles: 'セクター内に学習プロファイルが検出されません。',
+    root_access_dashboard: 'ルートアクセス・ダッシュボード',
+    active_neural_profiles: '有効なニューラル・プロファイル',
+    booting_system: 'システム起動中',
+    logout: 'ログアウト',
+
+    login_interface: 'G検定 インターフェース',
+    signup_interface: 'G検定 プロファイル作成',
+    establish_downlink: 'ダウンリンク・プロトコル確立中',
+    identifier_placeholder: 'アクセス識別子を入力...',
+    user_not_found: 'ユーザーが見つかりません。新規登録が必要です。',
+    user_exists: 'この識別子は既に使用されています。',
+    conn_failure: '通信エラー。リンクが不安定です。',
+    establish_link: '接続確立',
+    register_profile: 'プロファイル登録',
+    need_register: '新規プロファイルを作成しますか？',
+    already_active: '登録済みプロファイルで接続しますか？',
+    security_warning: '警告: 不正アクセス試行はすべて監視ログに記録されます。',
+
+    master_gkentei: 'G検定をマスターする',
+    jdla_sub: 'JDLA ディープラーニングG検定対策ツール',
+    mastery_basis: '習熟度に基づいた評価',
+    session_count: 'セッション数',
+    db_items: 'データベース項目',
+    unfinished_session: '未完了のセッション',
+    partial_scan_detected: 'の不完全なスキャンが検出されました。シーケンスを再開してデータ収集を完了してください。',
+    discard: '破棄',
+    resume_seq: 'シーケンス再開',
+    weak_spot_detected: '脆弱ノード検出',
+    critical_nodes_id: '個のクリティカル・ノードが再校正を必要としています。スコア最適化のために重点的に学習してください。',
+    initialize_targeted: '11のニューラル・ドメインにわたる標的型知識注入を初期化します。'
+};
+
+export const useLanguageStore = create<LanguageState>()(
+    persist(
+        () => ({
+            language: 'ja',
+            t: (key) => {
+                return translations[key] || key;
+            }
+        }),
+        {
+            name: 'g-kentei-language'
+        }
+    )
+);

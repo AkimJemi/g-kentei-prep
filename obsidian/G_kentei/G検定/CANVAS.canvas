@@ -1,0 +1,23 @@
+{
+	"nodes":[
+		{"id":"b062016b0c8cddd7","type":"file","file":"G検定/S6/＜01＞畳み込み層.md","x":-1240,"y":147,"width":400,"height":400},
+		{"id":"ca25be1482f43f79","type":"file","file":"G検定/S6/＜02＞層.md","x":-800,"y":147,"width":400,"height":400},
+		{"id":"983e42c6c710bde5","type":"file","file":"G検定/S6/＜03＞層.md","x":-360,"y":147,"width":400,"height":400},
+		{"id":"a8537650a910ce3a","type":"file","file":"G検定/S6/＜04＞層.md","x":80,"y":147,"width":400,"height":400},
+		{"id":"4ac30f30f699a5c0","type":"file","file":"G検定/S6/＜05＞層.md","x":520,"y":147,"width":400,"height":400},
+		{"id":"00a37611540e5ec0","type":"file","file":"G検定/S6/＜06＞層.md","x":960,"y":147,"width":400,"height":400},
+		{"id":"d4c0f424211340f9","type":"file","file":"G検定/S6/＜07＞トランスフォーマー.md","x":1400,"y":147,"width":400,"height":400},
+		{"id":"85fbe6f19f098ddd","type":"file","file":"G検定/S6/＜08＞オートエンコーダ.md","x":1840,"y":147,"width":400,"height":400},
+		{"id":"0b21ecebe0fd3064","type":"file","file":"G検定/S6/S6.md","x":340,"y":-560,"width":360,"height":320,"color":"2"}
+	],
+	"edges":[
+		{"id":"c87ffff8c3db95d9","fromNode":"b062016b0c8cddd7","fromSide":"top","toNode":"0b21ecebe0fd3064","toSide":"bottom"},
+		{"id":"9f0204faea046aed","fromNode":"ca25be1482f43f79","fromSide":"top","toNode":"0b21ecebe0fd3064","toSide":"bottom"},
+		{"id":"d78e2c55b581ffe9","fromNode":"983e42c6c710bde5","fromSide":"top","toNode":"0b21ecebe0fd3064","toSide":"bottom"},
+		{"id":"a75d7cddd11ce428","fromNode":"a8537650a910ce3a","fromSide":"top","toNode":"0b21ecebe0fd3064","toSide":"bottom"},
+		{"id":"45fb1dd2f76a20fc","fromNode":"4ac30f30f699a5c0","fromSide":"top","toNode":"0b21ecebe0fd3064","toSide":"bottom"},
+		{"id":"aea6437ebc983786","fromNode":"00a37611540e5ec0","fromSide":"top","toNode":"0b21ecebe0fd3064","toSide":"bottom"},
+		{"id":"d5d947367352720a","fromNode":"d4c0f424211340f9","fromSide":"top","toNode":"0b21ecebe0fd3064","toSide":"bottom"},
+		{"id":"93b3a73fb23e1d77","fromNode":"85fbe6f19f098ddd","fromSide":"top","toNode":"0b21ecebe0fd3064","toSide":"bottom"}
+	]
+}

@@ -1,0 +1,220 @@
+{
+  "main": {
+    "id": "d8df8051bf80b325",
+    "type": "split",
+    "children": [
+      {
+        "id": "fde3ee6fca928d72",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "9a1af114ee31b4ae",
+            "type": "leaf",
+            "state": {
+              "type": "canvas",
+              "state": {
+                "file": "G検定/CANVAS.canvas",
+                "viewState": {
+                  "x": 1951.6769022252445,
+                  "y": 428.06431324536413,
+                  "zoom": -0.3495411247846856
+                }
+              },
+              "icon": "lucide-layout-dashboard",
+              "title": "CANVAS"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "508c969b9c030e64",
+    "type": "split",
+    "children": [
+      {
+        "id": "e21c947794c7e307",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e7e26e87d846b4a9",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "f974566fb53aa759",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "b4c38ad619516df5",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "d31576b6d4ecdcdc",
+    "type": "split",
+    "children": [
+      {
+        "id": "6d243512d6c8f956",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "41192df5184f707f",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Untitled.base",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Untitled"
+            }
+          },
+          {
+            "id": "7c7df74aadaf9dca",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Untitled.base",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Untitled"
+            }
+          },
+          {
+            "id": "11369180c13735d7",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "8e46588958fe88a7",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "be67d3ff2a84c03e",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Untitled.base",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Untitled"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "9a1af114ee31b4ae",
+  "lastOpenFiles": [
+    "G検定/S6/S6.md",
+    "G検定/CANVAS.canvas",
+    "G検定/S6/＜05＞層.md",
+    "G検定/S6/＜01＞畳み込み層.md",
+    "G検定/S6/＜03＞層.md",
+    "G検定/S6/＜02＞層.md",
+    "Untitled 1.canvas",
+    "Untitled.canvas",
+    "G検定/S6/＜08＞オートエンコーダ.md",
+    "Untitled.base",
+    "G検定/S6/＜07＞トランスフォーマー.md",
+    "G検定/S6/＜04＞層.md",
+    "G検定/S6/＜06＞層.md",
+    "Untitled 2.base",
+    "Untitled 3.base",
+    "Untitled 1.base",
+    "[セクション.md",
+    "2026-02-07.md",
+    "G検定/S9/＜01＞平均,中央値,最頻値,分散,標準偏差.md",
+    "G検定/S9",
+    "Untitled.md",
+    "G検定",
+    "G検定/S6",
+    "セクション.md",
+    "Untitled 3.canvas",
+    "Untitled 2.canvas",
+    "create a link.md",
+    "Welcome.md"
+  ]
+}
