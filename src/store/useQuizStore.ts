@@ -2,13 +2,15 @@ import { create } from 'zustand';
 import type { QuizState, Question } from '../types';
 import { db } from '../db/db';
 import { useAuthStore } from './useAuthStore';
+import { normalizeKeys } from '../utils/normalize';
 
 // Helper to fetch all questions
 const fetchAllQuestions = async (): Promise<Question[]> => {
     try {
         const res = await fetch('/api/questions');
         if (!res.ok) throw new Error('Failed to fetch questions');
-        return await res.json();
+        const data = await res.json();
+        return normalizeKeys(data);
     } catch (error) {
         console.error("Failed to load questions from DB", error);
         return [];
@@ -48,7 +50,10 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
             }
 
             // Check for existing session
-            const userId = useAuthStore.getState().currentUser?.userId;
+            const authState = useAuthStore.getState();
+            const currentUser = authState.currentUser;
+            const userId = currentUser?.userId || (currentUser as any)?.id;
+
             if (!userId) return { success: false, error: 'AUTH_ERROR: User session invalid.' };
 
             const session = await db.sessions.get({ userId, category });
@@ -99,7 +104,8 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
             newAnswers[qIndex] = aIndex;
 
             // Sync session to DB
-            const userId = useAuthStore.getState().currentUser?.userId;
+            const currentUser = useAuthStore.getState().currentUser;
+            const userId = currentUser?.userId || (currentUser as any)?.id;
             const category = state.questions[0]?.category || 'All';
             if (userId) {
                 db.sessions.put({
@@ -122,7 +128,8 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
             set({ currentQuestionIndex: nextIndex });
 
             // Sync session to DB
-            const userId = useAuthStore.getState().currentUser?.userId;
+            const currentUser = useAuthStore.getState().currentUser;
+            const userId = currentUser?.userId || (currentUser as any)?.id;
             const category = state.questions[0]?.category || 'All';
             if (userId) {
                 db.sessions.update([userId, category], {
@@ -138,7 +145,8 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
                 }
             });
             // Clear session on finish
-            const userId = useAuthStore.getState().currentUser?.userId;
+            const currentUser = useAuthStore.getState().currentUser;
+            const userId = currentUser?.userId || (currentUser as any)?.id;
             const category = state.questions[0]?.category || 'All';
             if (userId) {
                 db.sessions.delete([userId, category]);
@@ -161,7 +169,8 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
             set({ currentQuestionIndex: prevIndex });
 
             // Sync session to DB
-            const userId = useAuthStore.getState().currentUser?.userId;
+            const currentUser = useAuthStore.getState().currentUser;
+            const userId = currentUser?.userId || (currentUser as any)?.id;
             const category = state.questions[0]?.category || 'All';
             if (userId) {
                 db.sessions.update([userId, category], {
@@ -198,7 +207,8 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
             const scoreToPersist = finalScore !== undefined ? finalScore : (showResults ? score : localCalculatedScore);
 
             try {
-                const userId = useAuthStore.getState().currentUser?.userId;
+                const currentUser = useAuthStore.getState().currentUser;
+                const userId = currentUser?.userId || (currentUser as any)?.id;
                 if (!userId) {
                     console.warn("[Neural Store] Link Aborted: Primary identifier (userId) not detected");
                     return;
@@ -229,7 +239,8 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
 
     discardSession: () => {
         const state = get();
-        const userId = useAuthStore.getState().currentUser?.userId;
+        const currentUser = useAuthStore.getState().currentUser;
+        const userId = currentUser?.userId || (currentUser as any)?.id;
         const category = state.questions[0]?.category || 'All';
         if (userId) {
             db.sessions.delete([userId, category]);
@@ -245,7 +256,8 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
 
     resetQuiz: () => {
         const state = get();
-        const userId = useAuthStore.getState().currentUser?.userId;
+        const currentUser = useAuthStore.getState().currentUser;
+        const userId = currentUser?.userId || (currentUser as any)?.id;
         const category = state.questions[0]?.category || 'All';
         if (userId) {
             db.sessions.delete([userId, category]);
@@ -261,7 +273,8 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
     },
 
     getActiveSessions: async () => {
-        const userId = useAuthStore.getState().currentUser?.userId;
+        const currentUser = useAuthStore.getState().currentUser;
+        const userId = currentUser?.userId || (currentUser as any)?.id;
         if (!userId) return [];
         return await db.sessions.where('userId').equals(userId).toArray();
     }

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuizStore } from './store/useQuizStore';
 import { useLanguageStore } from './store/useLanguageStore';
 import { NeuralBackground } from './components/NeuralBackground';
 import { useAuthStore } from './store/useAuthStore';
+import { normalizeKeys } from './utils/normalize';
 import { LoginView } from './components/LoginView';
 import { Dashboard } from './components/Dashboard';
 import { StudyMode } from './components/StudyMode';
@@ -23,6 +24,7 @@ import clsx from 'clsx';
 export default function App() {
   const { t } = useLanguageStore();
   const [view, setView] = useState<'dashboard' | 'study' | 'history' | 'quiz' | 'stats' | 'admin' | 'contact' | 'submit' | 'notifications' | 'flashcards'>('dashboard');
+  const scrollContainerRef = useRef<HTMLElement>(null);
   const [isBooting, setIsBooting] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | null }>({ message: '', type: null });
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -39,7 +41,8 @@ export default function App() {
       const notifUrl = currentUser ? `/api/notifications?userId=${currentUser.userId}` : '/api/notifications';
       const res = await fetch(notifUrl);
       const data = await res.json();
-      const unread = data.filter((n: any) => !n.isRead);
+      const normalized = normalizeKeys(data);
+      const unread = normalized.filter((n: any) => !n.isRead);
       setUnreadNotifications(unread.length);
       
       // If there are unread urgent notifications, notify the user
@@ -55,13 +58,20 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Sanity check: Ensure authenticated users have a valid userId
+    if (isAuthenticated && (!currentUser || !(currentUser.userId || (currentUser as any).id))) {
+      console.warn("[Neural Link] Corrupted session detected. Emergency logout sequence initiated.");
+      logout();
+      return;
+    }
+
     if (currentUser) {
       fetchData();
       // Refresh unread count every 60 seconds
       const interval = setInterval(fetchData, 60000);
       return () => clearInterval(interval);
     }
-  }, [currentUser, isAdmin]);
+  }, [currentUser, isAuthenticated, isAdmin]);
   
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -77,8 +87,29 @@ export default function App() {
     if (view === 'quiz' && isActive && newView !== 'quiz') {
       endQuiz();
     }
+    
+    // Explicitly scroll to top if navigating to the dashboard or same view
+    if ((newView === 'dashboard' || view === newView) && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'auto' });
+      window.scrollTo(0, 0); // Primary fallback for outer containers
+    }
+    
     setView(newView);
   };
+
+  useEffect(() => {
+    const scrollToTop = () => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+      }
+      window.scrollTo(0, 0);
+    };
+
+    scrollToTop();
+    // Re-trigger after short delay to ensure DOM is settled
+    const timer = setTimeout(scrollToTop, 100);
+    return () => clearTimeout(timer);
+  }, [view, isBooting]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -204,12 +235,15 @@ export default function App() {
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                 {t('optimized')}
               </div>
-              <div className="text-[8px] font-mono text-slate-600 uppercase tracking-widest">v4.0.0_STABLE</div>
+              <div className="text-[8px] font-mono text-slate-600 uppercase tracking-widest">v4.1.0_STABLE</div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 scroll-smooth relative z-10">
+        <main 
+          ref={scrollContainerRef as any}
+          className="flex-1 overflow-y-auto p-6 scroll-smooth relative z-10"
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={view}

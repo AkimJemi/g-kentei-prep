@@ -33,14 +33,8 @@ export const LoginView: React.FC = () => {
                 return;
             }
             
-            if (!/^[a-zA-Z]+$/.test(userId)) {
-                setError('ユーザーIDは英字のみ使用できます');
-                setIsLoading(false);
-                return;
-            }
-            
-            if (!/^[a-zA-Z0-9]+$/.test(nickname)) {
-                setError('ニックネームは英数字のみ使用できます');
+            if (!/^[a-zA-Z0-9._-]+$/.test(userId)) {
+                setError('ユーザーIDは英数字、ドット(.)、アンダースコア(_)、ハイフン(-)のみ使用できます');
                 setIsLoading(false);
                 return;
             }

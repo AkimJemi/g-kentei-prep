@@ -12,7 +12,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, onNavigate }) => {
       {/* Header */}
       <header className="border-b border-slate-800 bg-primary/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3 group cursor-pointer">
+          <div 
+            onClick={() => onNavigate?.('dashboard')}
+            className="flex items-center space-x-3 group cursor-pointer"
+          >
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 transition-all duration-300">
               <Brain className="w-5 h-5 text-white" />
             </div>

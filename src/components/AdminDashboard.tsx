@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { db, type User, type QuizAttempt } from '../db/db';
+import { normalizeKeys } from '../utils/normalize';
 
 import { motion } from 'framer-motion';
 import { Users, BarChart3, ShieldAlert, Trash2, UserCog, TrendingUp, Activity, Database, RefreshCw, Search, ChevronLeft, ChevronRight, ArrowUpDown, Clock, CheckSquare, Plus } from 'lucide-react';
 import clsx from 'clsx';
 import { MetricCard } from './MetricCard';
-import { CATEGORY_MAP } from '../constants/categories';
 
 export const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [allAttempts, setAllAttempts] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'users' | 'messages' | 'submissions' | 'questions' | 'notifications' | 'tasks'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'messages' | 'submissions' | 'questions' | 'notifications' | 'tasks' | 'categories'>('users');
   const [messages, setMessages] = useState<any[]>([]);
+  const [dbCategories, setDbCategories] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [allNotifications, setAllNotifications] = useState<any[]>([]);
@@ -61,16 +62,17 @@ export const AdminDashboard: React.FC = () => {
             const res = await fetch(`${url}?${queryParams}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const result = await res.json();
+            const normalized = normalizeKeys(result);
             
             // Handle both legacy (array) and new (paginated object) responses
-            if (result.data) {
-                setTotalPages(result.pagination.pages);
-                setTotalFilteredItems(result.pagination.total);
-                return result.data;
+            if (normalized.data) {
+                setTotalPages(normalized.pagination.pages);
+                setTotalFilteredItems(normalized.pagination.total);
+                return normalized.data;
             }
             setTotalPages(1);
-            setTotalFilteredItems(result.length || 0);
-            return result;
+            setTotalFilteredItems(normalized.length || 0);
+            return normalized;
         } catch (e) {
             console.error(`Failed to fetch ${url}:`, e);
             return defaultValue;
@@ -107,6 +109,9 @@ export const AdminDashboard: React.FC = () => {
         } catch (e) {
             console.error(e);
         }
+    } else if (activeTab === 'categories') {
+        const cats = await fetchSafe('/api/categories');
+        setDbCategories(cats);
     }
     
     const a = await db.attempts.toArray();
@@ -283,7 +288,7 @@ export const AdminDashboard: React.FC = () => {
   const handleRejectSubmission = (id: number) => {
     setConfirmModal({
         isOpen: true,
-        message: 'この投稿を削除しますか？この操作は取り消せません。',
+        message: '【検証失敗】この投稿データをパージしますか？この操作はニューラル・データベースから完全に取り消せなくなります。',
         onConfirm: async () => {
             try {
                 await fetch(`/api/admin/submissions/${id}`, { method: 'DELETE' });
@@ -300,7 +305,7 @@ export const AdminDashboard: React.FC = () => {
   const handleDeleteQuestion = (id: number) => {
     setConfirmModal({
         isOpen: true,
-        message: 'この問題をデータベースから完全に削除しますか？',
+        message: 'この学習ノード（問題）をマトリックスから完全に削除しますか？',
         onConfirm: async () => {
             try {
                 await fetch(`/api/admin/questions/${id}`, { method: 'DELETE' });
@@ -318,7 +323,7 @@ export const AdminDashboard: React.FC = () => {
     setConfirmModal({
         isOpen: true,
         title: 'ユーザーデータ削除',
-        message: 'このユーザーの全データを削除しますか？',
+        message: '【警告】対象ユーザーの全ニューラル・レコード（学習履歴、セッション等）を完全に消去しますか？',
         onConfirm: async () => {
              await Promise.all([
                 db.users.delete(userId),
@@ -346,6 +351,49 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const stats = getGlobalStats();
+  const dynamicCategoryMap = Object.fromEntries(dbCategories.map(c => [c.id, c.title]));
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    const isEdit = !!data.oldId;
+    const url = isEdit ? `/api/admin/categories/${data.oldId}` : '/api/admin/categories';
+    const method = isEdit ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (res.ok) {
+            addNotification('success', 'カテゴリを保存しました');
+            fetchData();
+            form.reset();
+        }
+    } catch (e) {
+        addNotification('error', 'カテゴリの保存に失敗しました');
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    setConfirmModal({
+        isOpen: true,
+        message: 'このカテゴリを削除しますか？関連する問題のカテゴリ名も手動で更新する必要があります。',
+        onConfirm: async () => {
+            try {
+                await fetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
+                addNotification('success', 'カテゴリを削除しました');
+                fetchData();
+            } catch (e) {
+                addNotification('error', '削除に失敗しました');
+            }
+            setConfirmModal(null);
+        }
+    });
+  };
 
   if (isLoading) return <div className="p-12 text-center animate-pulse text-accent font-black uppercase tracking-widest">データ読み込み中...</div>;
 
@@ -366,6 +414,7 @@ export const AdminDashboard: React.FC = () => {
                 { id: 'messages', label: '受信トレイ', icon: Activity },
                 { id: 'submissions', label: '承認待ち', icon: Database },
                 { id: 'questions', label: '問題データ', icon: BarChart3 },
+                { id: 'categories', label: 'カテゴリ', icon: Plus },
                 { id: 'notifications', label: '通知管理', icon: ShieldAlert },
                 { id: 'tasks', label: 'タスク管理', icon: Clock }
             ].map((tab) => (
@@ -534,17 +583,7 @@ export const AdminDashboard: React.FC = () => {
                                 onChange={(e) => setFilters(prev => ({...prev, category: e.target.value}))}
                                 className="bg-slate-950/50 border border-slate-800 rounded px-2 py-1 text-[10px] text-white max-w-[150px]"
                               >
-                                  <option value="">全てのカテゴリ</option>
-                                  <option value="AI Fundamentals">AIの基礎</option>
-                                  <option value="AI Trends">AIをめぐる動向</option>
-                                  <option value="Machine Learning">機械学習</option>
-                                  <option value="Deep Learning Basics">DL概要</option>
-                                  <option value="Deep Learning Tech">DL手法</option>
-                                  <option value="AI Applications">DL応用</option>
-                                  <option value="Social Implementation">社会実装</option>
-                                  <option value="Math & Statistics">数理・統計</option>
-                                  <option value="Law & Contracts">法律・契約</option>
-                                  <option value="Ethics & Governance">倫理</option>
+                                  {dbCategories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                               </select>
                           )}
 
@@ -729,7 +768,7 @@ export const AdminDashboard: React.FC = () => {
                                     <div className="flex flex-col md:flex-row gap-6">
                                         <div className="flex-1 space-y-4">
                                             <div className="flex items-center gap-3">
-                                                <span className="bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded text-xs font-bold border border-emerald-500/20">{CATEGORY_MAP[sub.category] || sub.category}</span>
+                                                <span className="bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded text-xs font-bold border border-emerald-500/20">{dynamicCategoryMap[sub.category] || sub.category}</span>
                                                 <span className="text-xs text-slate-600 font-mono">{new Date(sub.createdAt).toLocaleDateString('ja-JP')}</span>
                                             </div>
                                             <div className="font-bold text-white text-lg">{sub.question}</div>
@@ -811,7 +850,7 @@ export const AdminDashboard: React.FC = () => {
                                   </td>
                                   <td className="px-8 py-6">
                                       <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-xs font-bold border border-slate-700">
-                                        {CATEGORY_MAP[q.category] || q.category}
+                                        {dynamicCategoryMap[q.category] || q.category}
                                       </span>
                                   </td>
                                   <td className="px-8 py-6 max-w-md">
@@ -987,6 +1026,101 @@ export const AdminDashboard: React.FC = () => {
               </div>
           )}
 
+          {/* CATEGORIES TAB */}
+          {activeTab === 'categories' && (
+              <div className="p-8 space-y-8">
+                  <h2 className="text-xl font-bold text-white mb-6">カテゴリ管理</h2>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                      {/* Category List */}
+                      <div className="lg:col-span-2 space-y-4">
+                          {dbCategories.map((cat) => (
+                              <div key={cat.id} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 flex justify-between items-center group">
+                                  <div className="flex items-center gap-4">
+                                      <div className={clsx("w-12 h-12 rounded-xl flex items-center justify-center font-bold", cat.bg)}>
+                                          <span className={cat.color}>{cat.icon.substring(0, 1)}</span>
+                                      </div>
+                                      <div>
+                                          <h3 className="text-lg font-bold text-white">{cat.title} <span className="text-xs text-slate-500 font-normal">({cat.id})</span></h3>
+                                          <p className="text-xs text-slate-500 line-clamp-1">{cat.description}</p>
+                                      </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                      <button 
+                                        onClick={() => {
+                                            const form = document.getElementById('category-form') as HTMLFormElement;
+                                            if (form) {
+                                                (form.elements.namedItem('oldId') as HTMLInputElement).value = cat.id;
+                                                (form.elements.namedItem('id') as HTMLInputElement).value = cat.id;
+                                                (form.elements.namedItem('title') as HTMLInputElement).value = cat.title;
+                                                (form.elements.namedItem('icon') as HTMLInputElement).value = cat.icon;
+                                                (form.elements.namedItem('color') as HTMLInputElement).value = cat.color;
+                                                (form.elements.namedItem('bg') as HTMLInputElement).value = cat.bg;
+                                                (form.elements.namedItem('description') as HTMLTextAreaElement).value = cat.description;
+                                                (form.elements.namedItem('displayOrder') as HTMLInputElement).value = cat.displayOrder;
+                                            }
+                                        }}
+                                        className="p-2 text-slate-500 hover:text-accent transition-colors"
+                                      >
+                                          <UserCog className="w-4 h-4" />
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeleteCategory(cat.id)}
+                                        className="p-2 text-slate-700 hover:text-red-500 transition-colors"
+                                      >
+                                          <Trash2 className="w-4 h-4" />
+                                      </button>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+
+                      {/* Add/Edit Form */}
+                      <div className="bg-slate-900/40 p-6 rounded-2xl border border-white/[0.06] h-fit">
+                          <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">カテゴリ作成・編集</h3>
+                          <form id="category-form" onSubmit={handleSaveCategory} className="space-y-4">
+                              <input type="hidden" name="oldId" />
+                              <div className="space-y-1">
+                                  <label className="text-[10px] font-black text-slate-500 uppercase">ID (Internal)</label>
+                                  <input name="id" type="text" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" placeholder="AI Fundamentals" />
+                              </div>
+                              <div className="space-y-1">
+                                  <label className="text-[10px] font-black text-slate-500 uppercase">表示タイトル</label>
+                                  <input name="title" type="text" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" placeholder="AIの基礎" />
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-1">
+                                      <label className="text-[10px] font-black text-slate-500 uppercase">アイコン (Lucide名)</label>
+                                      <input name="icon" type="text" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" placeholder="Brain" />
+                                  </div>
+                                  <div className="space-y-1">
+                                      <label className="text-[10px] font-black text-slate-500 uppercase">表示順</label>
+                                      <input name="displayOrder" type="number" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" placeholder="0" />
+                                  </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-1">
+                                      <label className="text-[10px] font-black text-slate-500 uppercase">文字色クラス</label>
+                                      <input name="color" type="text" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" placeholder="text-blue-400" />
+                                  </div>
+                                  <div className="space-y-1">
+                                      <label className="text-[10px] font-black text-slate-500 uppercase">背景色クラス</label>
+                                      <input name="bg" type="text" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" placeholder="bg-blue-400/10" />
+                                  </div>
+                              </div>
+                              <div className="space-y-1">
+                                  <label className="text-[10px] font-black text-slate-500 uppercase">説明文</label>
+                                  <textarea name="description" rows={3} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white" placeholder="カテゴリの説明..." />
+                              </div>
+                              <div className="flex gap-2">
+                                  <button type="reset" className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-all">リセット</button>
+                                  <button type="submit" className="flex-1 py-3 bg-accent hover:bg-sky-400 text-primary font-black uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-accent/20 transition-all">保存実行</button>
+                              </div>
+                          </form>
+                      </div>
+                  </div>
+              </div>
+          )}
+
           {/* Pagination Controls */}
           {totalPages > 1 && (
               <div className="px-8 py-4 border-t border-white/[0.04] bg-slate-900/10 flex items-center justify-between mt-auto">
@@ -1122,7 +1256,13 @@ export const AdminDashboard: React.FC = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-500 uppercase">カテゴリ</label>
-                            <input type="text" value={questionModal.data.category} onChange={(e) => setQuestionModal({ ...questionModal, data: { ...questionModal.data, category: e.target.value } })} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white" />
+                            <select 
+                                value={questionModal.data.category} 
+                                onChange={(e) => setQuestionModal({ ...questionModal, data: { ...questionModal.data, category: e.target.value } })} 
+                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white"
+                            >
+                                {dbCategories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                            </select>
                         </div>
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-500 uppercase">正解インデックス (0-3)</label>

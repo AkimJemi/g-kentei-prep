@@ -26,11 +26,12 @@ export const HistoryView: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (!currentUser?.userId) {
+        const userId = currentUser?.userId || (currentUser as any)?.id;
+        if (!userId) {
             setLoading(false);
             return;
         }
-        db.attempts.where('userId').equals(currentUser.userId).reverse().sortBy('date').then((data: QuizAttempt[]) => {
+        db.attempts.where('userId').equals(userId).reverse().sortBy('date').then((data: QuizAttempt[]) => {
             setAttempts(data);
             setLoading(false);
         }).catch((error: any) => {

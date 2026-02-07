@@ -1,9 +1,19 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 
 import { useLanguageStore } from '../store/useLanguageStore';
-import { Brain, Cpu, Database, Zap, Layers, Globe, Shield, Terminal, BookOpen, Award, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+    Brain, Cpu, Database, Zap, Layers, Globe, 
+    Shield, Terminal, BookOpen, Award, 
+    ChevronLeft, ChevronRight, HelpCircle 
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
+import { type Category } from '../db/db';
+
+const ICON_MAP: Record<string, any> = {
+    Brain, Cpu, Database, Zap, Layers, Globe, 
+    Shield, Terminal, BookOpen, Award
+};
 
 interface StudyModeProps {
   onStartPractice: (category: string) => void;
@@ -12,23 +22,28 @@ interface StudyModeProps {
 export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
   const { t } = useLanguageStore();
   const [totalQuestions, setTotalQuestions] = React.useState(0);
+  const [categories, setCategories] = React.useState<Category[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    fetch('/api/questions').then(res => res.json()).then(data => setTotalQuestions(data.length)).catch(console.error);
+    const fetchData = async () => {
+        try {
+            const [qRes, cRes] = await Promise.all([
+                fetch('/api/questions'),
+                fetch('/api/categories')
+            ]);
+            const qData = await qRes.json();
+            const cData = await cRes.json();
+            setTotalQuestions(qData.length);
+            setCategories(cData);
+        } catch (error) {
+            console.error("Failed to load study data", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchData();
   }, []);
-
-  const categories = useMemo(() => [
-    { id: 'cat_fundamentals', realId: 'AI Fundamentals', title: 'cat_fundamentals', icon: Brain, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    { id: 'cat_trends', realId: 'AI Trends', title: 'cat_trends', icon: Cpu, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
-    { id: 'cat_ml', realId: 'Machine Learning', title: 'cat_ml', icon: Database, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { id: 'cat_dl_basics', realId: 'Deep Learning Basics', title: 'cat_dl_basics', icon: Zap, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-    { id: 'cat_dl_tech', realId: 'Deep Learning Tech', title: 'cat_dl_tech', icon: Layers, color: 'text-rose-400', bg: 'bg-rose-400/10' },
-    { id: 'cat_apps', realId: 'AI Applications', title: 'cat_apps', icon: Globe, color: 'text-sky-400', bg: 'bg-sky-400/10' },
-    { id: 'cat_social', realId: 'Social Implementation', title: 'cat_social', icon: Shield, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-    { id: 'cat_math', realId: 'Math & Statistics', title: 'cat_math', icon: Terminal, color: 'text-slate-400', bg: 'bg-slate-400/10' },
-    { id: 'cat_law', realId: 'Law & Contracts', title: 'cat_law', icon: BookOpen, color: 'text-teal-400', bg: 'bg-teal-400/10' },
-    { id: 'cat_ethics', realId: 'Ethics & Governance', title: 'cat_ethics', icon: Award, color: 'text-orange-400', bg: 'bg-orange-400/10' },
-  ], [t]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -53,13 +68,21 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
       const index = shortcuts.indexOf(key);
       
       if (index !== -1 && categories[index]) {
-        onStartPractice(categories[index].realId);
+        onStartPractice(categories[index].id);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onStartPractice, categories]);
+
+  if (loading) {
+      return (
+          <div className="flex items-center justify-center min-h-[400px]">
+              <div className="w-12 h-12 border-t-2 border-accent rounded-full animate-spin" />
+          </div>
+      );
+  }
 
   return (
     <motion.div 
@@ -105,7 +128,7 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {categories.map((cat, idx) => {
-          const CategoryIcon = cat.icon;
+          const CategoryIcon = ICON_MAP[cat.icon] || HelpCircle;
           const shortcuts = ['1', '2', '3', '4', 'Q', 'W', 'E', 'R', 'A', 'S'];
           const shortcut = shortcuts[idx] || (idx + 1).toString();
 
@@ -113,7 +136,7 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
             <motion.button
               key={cat.id}
               variants={itemVariants}
-              onClick={() => onStartPractice(cat.realId)}
+              onClick={() => onStartPractice(cat.id)}
               className="group relative p-8 bg-secondary/10 hover:bg-secondary/20 border border-white/[0.04] rounded-3xl text-left transition-all hover:border-accent/30 shadow-xl overflow-hidden active:scale-95"
             >
               <div className="absolute top-4 right-6 text-[10px] font-black text-slate-600/60 group-hover:text-slate-400 transition-colors">
@@ -127,10 +150,10 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
                 </div>
                 <div>
                   <h3 className="text-xl font-black italic uppercase tracking-tighter text-white mb-2 group-hover:text-accent transition-colors">
-                    {t(cat.title)}
+                    {cat.title}
                   </h3>
                   <p className="text-slate-500 text-xs font-medium leading-relaxed mb-6 line-clamp-2">
-                    {t('sector_definition_long')}
+                    {cat.description}
                   </p>
                 </div>
               </div>
@@ -138,7 +161,7 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
               <div className="flex items-center justify-between mt-auto relative z-10">
                   <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                    {t('total_nodes')}: 20
+                    {t('optimized')} SECTOR
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-700 group-hover:text-accent group-hover:translate-x-1 transition-all" />
               </div>

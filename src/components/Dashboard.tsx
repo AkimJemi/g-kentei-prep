@@ -4,6 +4,7 @@ import { useQuizStore } from '../store/useQuizStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { db } from '../db/db';
+import { normalizeKeys } from '../utils/normalize';
 import { GroupChat } from './GroupChat';
 import { motion } from 'framer-motion';
 
@@ -30,14 +31,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
   useEffect(() => {
     // Fetch total question count
     fetch('/api/questions').then(res => res.json()).then((data: any[]) => {
-        setStats(prev => ({ ...prev, totalQuestions: data.length }));
+        const normalized = normalizeKeys(data);
+        setStats(prev => ({ ...prev, totalQuestions: normalized.length }));
     }).catch(console.error);
   }, []);
 
   useEffect(() => {
-      if (!currentUser?.userId) return;
+      const userId = currentUser?.userId || (currentUser as any)?.id;
+      if (!userId) return;
 
-      db.attempts.where('userId').equals(currentUser.userId).toArray().then((data: any[]) => {
+      db.attempts.where('userId').equals(userId).toArray().then((data: any[]) => {
           if (data.length === 0) return;
           
           let totalScore = 0;
@@ -69,7 +72,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
           }));
       });
 
-      db.sessions.where('userId').equals(currentUser.userId).toArray().then((sessions: any[]) => {
+      db.sessions.where('userId').equals(userId).toArray().then((sessions: any[]) => {
           setStats(prev => ({ ...prev, activeSessions: sessions }));
       });
   }, [currentUser]);
@@ -277,7 +280,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
                     <div className="flex gap-3 w-full">
                         <button 
                             onClick={() => {
-                                if (currentUser?.userId) {
+                                if (currentUser?.userId && confirm('【確認】現在の中断セッションを破棄してもよろしいですか？（進捗は保存されません）')) {
                                     db.sessions.delete([currentUser.userId, stats.activeSessions[0].category]);
                                     setStats(prev => ({ ...prev, activeSessions: prev.activeSessions.slice(1) }));
                                 }

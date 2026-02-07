@@ -3,6 +3,7 @@ import { db } from '../db/db';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useAuthStore } from '../store/useAuthStore';
 import type { Question } from '../types';
+import { normalizeKeys } from '../utils/normalize';
 import { Brain, TrendingUp, BarChart3, AlertTriangle, CheckCircle2, Target, PieChart, Zap, ChevronLeft, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -23,17 +24,18 @@ export const Statistics: React.FC = () => {
         // Fetch All Questions
         fetch('/api/questions')
             .then(res => res.json())
-            .then(data => setAllQuestions(data))
+            .then(data => setAllQuestions(normalizeKeys(data)))
             .catch(console.error);
     }, []);
 
     useEffect(() => {
-        if (!currentUser?.userId || allQuestions.length === 0) {
+        const userId = currentUser?.userId || (currentUser as any)?.id;
+        if (!userId || allQuestions.length === 0) {
             setStats(null);
             return;
         }
 
-        db.attempts.where('userId').equals(currentUser.userId).toArray().then((attempts: any[]) => {
+        db.attempts.where('userId').equals(userId).toArray().then((attempts: any[]) => {
             if (attempts.length === 0) {
                 setStats(null);
                 return;

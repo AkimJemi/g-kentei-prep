@@ -1,3 +1,4 @@
+import { normalizeKeys } from '../utils/normalize';
 export interface User {
     userId: string;            // Primary key - login ID
     nickname: string;          // Display name
@@ -25,21 +26,24 @@ export interface QuizSession {
     lastUpdated: Date;
 }
 
+export interface Category {
+    id: string; // Internal ID like 'AI Fundamentals'
+    title: string; // Display title like 'AIの基礎'
+    icon: string; // Lucide icon name
+    color: string; // CSS color class
+    bg: string; // CSS background class
+    description: string;
+    displayOrder: number;
+}
+
 class TableMock<T> {
     endpoint: string;
     constructor(endpoint: string) {
         this.endpoint = endpoint;
     }
 
-    private convertDates(item: any): T {
-        if (!item) return item;
-        const dateFields = ['date', 'joinedAt', 'lastUpdated'];
-        dateFields.forEach(field => {
-            if (item[field] && typeof item[field] === 'string') {
-                item[field] = new Date(item[field]);
-            }
-        });
-        return item;
+    private normalize(item: any): T {
+        return normalizeKeys(item);
     }
 
     async get(id: any): Promise<T | null> {
@@ -53,7 +57,8 @@ class TableMock<T> {
         }
         if (!res.ok) return null;
         const data = await res.json();
-        return Array.isArray(data) ? data.map(i => this.convertDates(i))[0] : this.convertDates(data);
+        const normalized = this.normalize(data);
+        return Array.isArray(normalized) ? normalized[0] : normalized;
     }
 
     async add(item: T): Promise<string> {
@@ -64,7 +69,8 @@ class TableMock<T> {
             body: JSON.stringify(item)
         });
         const data = await res.json();
-        return data.userId; // Return userId instead of id
+        // Postgres returns 'userid' in many places now
+        return data.userId || data.userid || data.id;
     }
 
     async put(item: T): Promise<void> {
@@ -98,12 +104,12 @@ class TableMock<T> {
         console.log(`[Neural DB] TO_ARRAY ${this.endpoint}`);
         const res = await fetch(`/api${this.endpoint}`);
         const data = await res.json();
-        return Array.isArray(data) ? data.map((i: any) => this.convertDates(i)) : [];
+        const normalized = this.normalize(data);
+        return Array.isArray(normalized) ? normalized : [];
     }
 
     where(field: string) {
         const endpoint = this.endpoint;
-        const convertDates = this.convertDates.bind(this);
 
         const chain = {
             equalsIgnoreCase: (value: string) => ({
@@ -111,7 +117,7 @@ class TableMock<T> {
                     console.log(`[Neural DB] WHERE_EQ_IGNORE_CASE ${endpoint}`, field, value);
                     const res = await fetch(`/api${endpoint}/${value}`);
                     if (!res.ok) return null;
-                    return convertDates(await res.json());
+                    return this.normalize(await res.json());
                 }
             }),
             equals: (value: any) => {
@@ -125,14 +131,16 @@ class TableMock<T> {
                         const query = new URLSearchParams(queryObj).toString();
                         const res = await fetch(`/api${endpoint}?${query}&sort=${sortField}`);
                         const data = await res.json();
-                        return Array.isArray(data) ? data.map(convertDates) : [];
+                        const normalized = this.normalize(data);
+                        return Array.isArray(normalized) ? normalized : [];
                     },
                     toArray: async () => {
                         console.log(`[Neural DB] WHERE_EQ_TO_ARRAY ${endpoint}`, queryObj);
                         const query = new URLSearchParams(queryObj).toString();
                         const res = await fetch(`/api${endpoint}?${query}`);
                         const data = await res.json();
-                        return Array.isArray(data) ? data.map(convertDates) : [];
+                        const normalized = this.normalize(data);
+                        return Array.isArray(normalized) ? normalized : [];
                     },
                     delete: async () => {
                         console.log(`[Neural DB] WHERE_EQ_DELETE ${endpoint}`, queryObj);
@@ -152,11 +160,13 @@ export class GKenteiDatabase {
     users: TableMock<User>;
     attempts: TableMock<QuizAttempt>;
     sessions: TableMock<QuizSession>;
+    categories: TableMock<Category>;
 
     constructor() {
         this.users = new TableMock<User>('/users');
         this.attempts = new TableMock<QuizAttempt>('/attempts');
         this.sessions = new TableMock<QuizSession>('/sessions');
+        this.categories = new TableMock<Category>('/categories');
     }
 
     isOpen() { return true; }

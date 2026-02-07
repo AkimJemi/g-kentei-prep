@@ -78,7 +78,23 @@ export const useAuthStore = create<AuthState>()(
             }
         }),
         {
-            name: 'g-kentei-auth'
+            name: 'g-kentei-auth',
+            onRehydrateStorage: () => (state) => {
+                if (state?.isAuthenticated && state.currentUser) {
+                    // Migrate legacy 'id' to 'userId' if needed
+                    const user = state.currentUser as any;
+                    if (!user.userId && (user.id || user.userid)) {
+                        console.log("[Neural Link] Migrating legacy user token...");
+                        user.userId = user.id || user.userid;
+                    }
+
+                    // Sanity check: If still no userId, force logout
+                    if (!user.userId) {
+                        console.warn("[Neural Link] Invalid user state detected during rehydration. Resetting...");
+                        state.logout();
+                    }
+                }
+            }
         }
     )
 );

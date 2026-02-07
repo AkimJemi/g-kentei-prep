@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, CheckCircle2, Info, AlertTriangle, MailOpen } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuthStore } from '../store/useAuthStore';
+import { normalizeKeys } from '../utils/normalize';
 
 interface Notification {
   id: number;
@@ -25,7 +26,7 @@ export const NotificationView: React.FC = () => {
       const url = currentUser ? `/api/notifications?userId=${currentUser.userId}` : '/api/notifications';
       const res = await fetch(url);
       const data = await res.json();
-      setNotifications(data);
+      setNotifications(normalizeKeys(data));
     } catch (e) {
       console.error("Failed to fetch notifications", e);
     }
