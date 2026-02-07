@@ -233,7 +233,7 @@ app.delete('/api/users/:id', (req, res) => {
 
 // SPA fallback - serve index.html for all non-API routes
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
+  app.get(/(.*)/, (req, res) => {
     res.sendFile(join(__dirname, '../dist/index.html'));
   });
 }
