@@ -1,13 +1,14 @@
 export interface User {
-    id?: number;
-    username: string;
+    userId: string;            // Primary key - login ID
+    nickname: string;          // Display name
     role: 'user' | 'admin';
+    status?: 'active' | 'suspended';
     joinedAt: Date;
 }
 
 export interface QuizAttempt {
     id?: number;
-    userId: number;
+    userId: string;            // Foreign key to users.userId
     date: Date;
     score: number;
     totalQuestions: number;
@@ -17,7 +18,7 @@ export interface QuizAttempt {
 }
 
 export interface QuizSession {
-    userId: number;
+    userId: string;            // Foreign key to users.userId
     category: string;
     currentQuestionIndex: number;
     answers: (number | undefined)[];
@@ -55,7 +56,7 @@ class TableMock<T> {
         return Array.isArray(data) ? data.map(i => this.convertDates(i))[0] : this.convertDates(data);
     }
 
-    async add(item: T): Promise<number> {
+    async add(item: T): Promise<string> {
         console.log(`[Neural DB] ADD ${this.endpoint}`, item);
         const res = await fetch(`/api${this.endpoint}`, {
             method: 'POST',
@@ -63,7 +64,7 @@ class TableMock<T> {
             body: JSON.stringify(item)
         });
         const data = await res.json();
-        return data.id;
+        return data.userId; // Return userId instead of id
     }
 
     async put(item: T): Promise<void> {

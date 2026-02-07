@@ -1,11 +1,12 @@
 import React from 'react';
-import { Brain, Github, MessageCircleQuestion, PlusCircle } from 'lucide-react';
+import { Brain, MessageCircleQuestion, PlusCircle } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
+  onNavigate?: (view: any) => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, onNavigate }) => {
   return (
     <div className="min-h-screen bg-primary text-slate-200 flex flex-col font-sans selection:bg-accent selection:text-primary">
       {/* Header */}
@@ -21,18 +22,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
 
           <nav className="flex items-center space-x-6 text-sm font-medium">
-            <a href="https://github.com/AkimJemi/g-kentei-prep/issues/new?title=[Question]%20New%20Question%20Proposal&body=**Question:**%0A%0A**Options:**%0A1.%20%0A2.%20%0A3.%20%0A4.%20%0A%0A**Correct%20Answer:**%0A%0A**Explanation:**" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors">
+            <button onClick={() => onNavigate?.('submit')} className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors">
               <PlusCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Add Question</span>
-            </a>
-            <a href="https://github.com/AkimJemi/g-kentei-prep/issues/new?title=[Contact]%20Inquiry&body=**Topic:**%0A%0A**Details:**" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors">
+              <span className="hidden sm:inline">問題を投稿</span>
+            </button>
+            <button onClick={() => onNavigate?.('contact')} className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors relative">
               <MessageCircleQuestion className="w-4 h-4" />
-              <span className="hidden sm:inline">Contact</span>
-            </a>
-            <a href="https://github.com/AkimJemi/g-kentei-prep" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors">
-              <Github className="w-4 h-4" />
-              <span className="hidden sm:inline">GitHub</span>
-            </a>
+              <span className="hidden sm:inline">お問い合わせ</span>
+
+            </button>
           </nav>
         </div>
       </header>
@@ -45,7 +43,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Footer */}
       <footer className="border-t border-slate-800 bg-slate-900/50 py-8 mt-auto">
         <div className="max-w-5xl mx-auto px-4 text-center text-slate-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} G-Kentei Prep. Designed by Antigravity.</p>
+          <p>&copy; {new Date().getFullYear()} G-Kentei Prep. Designed by Akim.</p>
         </div>
       </footer>
     </div>

@@ -1,28 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { db, type QuizAttempt } from '../db/db';
-import { questions } from '../data/questions';
+import { CATEGORY_MAP } from '../constants/categories';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useAuthStore } from '../store/useAuthStore';
+import type { Question } from '../types';
 import { Calendar, ChevronDown, CheckCircle2, XCircle, BookOpen, Radio, Database, History, Zap, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
 export const HistoryView: React.FC = () => {
-    const { t, language } = useLanguageStore();
+    const { t } = useLanguageStore();
     const { currentUser } = useAuthStore();
     const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedSessionId, setExpandedSessionId] = useState<number | null>(null);
     const [expandedQuestionId, setExpandedQuestionId] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'sessions' | 'questions'>('sessions');
+    const [allQuestions, setAllQuestions] = useState<Question[]>([]);
 
     useEffect(() => {
-        if (!currentUser?.id) {
+        fetch('/api/questions')
+            .then(res => res.json())
+            .then(setAllQuestions)
+            .catch(console.error);
+    }, []);
+
+    useEffect(() => {
+        if (!currentUser?.userId) {
             setLoading(false);
             return;
         }
-        db.attempts.where('userId').equals(currentUser.id).reverse().sortBy('date').then((data: QuizAttempt[]) => {
+        db.attempts.where('userId').equals(currentUser.userId).reverse().sortBy('date').then((data: QuizAttempt[]) => {
             setAttempts(data);
+            setLoading(false);
+        }).catch((error: any) => {
+            console.error("Failed to load attempts:", error);
             setLoading(false);
         });
     }, [currentUser]);
@@ -41,9 +53,9 @@ export const HistoryView: React.FC = () => {
     }, []);
 
     const handleClearHistory = async () => {
-        if (!currentUser?.id) return;
+        if (!currentUser?.userId) return;
         if (window.confirm('Permanently delete all neural records for this profile?')) {
-            await db.attempts.where('userId').equals(currentUser.id).delete();
+            await db.attempts.where('userId').equals(currentUser.userId).delete();
             setAttempts([]);
         }
     };
@@ -117,7 +129,7 @@ export const HistoryView: React.FC = () => {
                             <History className="w-8 h-8 text-accent" />
                             {t('neural_logs')}
                         </h1>
-                        <p className="text-slate-500 font-medium tracking-tight">Persistent storage of past evaluations and node mastery data.</p>
+                        <p className="text-slate-500 font-medium tracking-tight">過去の評価とノード習熟度データの永続的なストレージ。</p>
                     </div>
                 </div>
                 
@@ -184,7 +196,7 @@ export const HistoryView: React.FC = () => {
                                                     <span>{attempt.date.toLocaleString()}</span>
                                                 </div>
                                                 <div className="text-2xl font-black italic uppercase tracking-tighter text-white group-hover:text-accent transition-colors">
-                                                    {attempt.category === 'All' ? t('system_evolution') : attempt.category}
+                                                    {attempt.category === 'All' ? t('system_evolution') : (CATEGORY_MAP[attempt.category] || attempt.category)}
                                                 </div>
                                             </div>
                                         </div>
@@ -225,14 +237,16 @@ export const HistoryView: React.FC = () => {
                                                     <div className="grid gap-4">
                                                         {Object.entries(attempt.userAnswers || {}).map(([qIdStr, userAnswIdx]) => {
                                                             const qId = Number(qIdStr);
-                                                            const question = questions.find(q => q.id === qId);
+                                                            const question = allQuestions.find(q => q.id === qId);
                                                             const isCorrectNode = !attempt.wrongQuestionIds?.includes(qId);
                                                             
                                                             if (!question) return null;
 
-                                                            const locQ = language && question.translations?.[language] 
-                                                                ? question.translations[language] 
-                                                                : { question: question.question, options: question.options, explanation: question.explanation };
+                                                            const locQ = { 
+                                                                question: question.question, 
+                                                                options: question.options, 
+                                                                explanation: question.explanation 
+                                                            };
 
                                                             return (
                                                                 <div key={qId} className={clsx(
@@ -294,14 +308,17 @@ export const HistoryView: React.FC = () => {
                             .sort((a, b) => (a[1].correct/a[1].total) - (b[1].correct/b[1].total)) // Lower accuracy first
                             .map(([qIdStr, stat]) => {
                                 const qId = Number(qIdStr);
-                                const question = questions.find(q => q.id === qId);
+                                const question = allQuestions.find(q => q.id === qId);
                                 if (!question) return null;
                                 const accuracy = Math.round((stat.correct / stat.total) * 100);
                                 const isExpanded = expandedQuestionId === qId;
                                 
-                                const locQ = language && question.translations?.[language] 
-                                    ? question.translations[language] 
-                                    : { question: question.question, options: question.options, explanation: question.explanation, category: question.category };
+                                const locQ = { 
+                                    question: question.question, 
+                                    options: question.options, 
+                                    explanation: question.explanation, 
+                                    category: question.category 
+                                };
 
                                 return (
                                     <div key={qId} className="bg-secondary/10 border border-white/[0.04] rounded-3xl overflow-hidden group hover:border-accent/20 transition-all shadow-lg">
@@ -311,13 +328,13 @@ export const HistoryView: React.FC = () => {
                                         >
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-3 mb-3">
-                                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent/60 bg-accent/5 px-2 py-0.5 rounded border border-accent/10">{locQ.category || question.category}</span>
+                                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent/60 bg-accent/5 px-2 py-0.5 rounded border border-accent/10">{CATEGORY_MAP[locQ.category || question.category] || (locQ.category || question.category)}</span>
                                                 </div>
                                                 <p className="text-xl font-black italic uppercase tracking-tighter text-slate-200 line-clamp-1 group-hover:text-white transition-colors">{locQ.question}</p>
                                             </div>
                                             <div className="flex items-center gap-10">
                                                 <div className="text-right">
-                                                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">Scans</div>
+                                                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">スキャン回数</div>
                                                     <div className="font-mono text-2xl font-black text-white italic">{stat.total}</div>
                                                 </div>
                                                 <div className="text-right min-w-[90px]">

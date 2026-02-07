@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { questions } from '../data/questions';
+
 import { useLanguageStore } from '../store/useLanguageStore';
 import { Brain, Cpu, Database, Zap, Layers, Globe, Shield, Terminal, BookOpen, Award, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -11,6 +11,11 @@ interface StudyModeProps {
 
 export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
   const { t } = useLanguageStore();
+  const [totalQuestions, setTotalQuestions] = React.useState(0);
+
+  React.useEffect(() => {
+    fetch('/api/questions').then(res => res.json()).then(data => setTotalQuestions(data.length)).catch(console.error);
+  }, []);
 
   const categories = useMemo(() => [
     { id: 'cat_fundamentals', realId: 'AI Fundamentals', title: 'cat_fundamentals', icon: Brain, color: 'text-blue-400', bg: 'bg-blue-400/10' },
@@ -75,14 +80,26 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
             </button>
             <div className="space-y-2">
                 <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none">
-                    {t('study')} <span className="text-accent ring-accent/20">Sector</span>
+                    {t('study')} <span className="text-accent ring-accent/20">分野</span>
                 </h1>
                 <p className="text-slate-500 font-medium tracking-tight">{t('initialize_targeted')}</p>
             </div>
         </div>
-        <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 px-6 py-3 rounded-2xl">
-            <Cpu className="w-4 h-4 text-emerald-500" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('total_nodes')}: {questions.length}</span>
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <button 
+                onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f' }))}
+                className="flex items-center gap-3 bg-accent/10 hover:bg-accent/20 border border-accent/20 px-6 py-3 rounded-2xl transition-all group"
+            >
+                <Brain className="w-5 h-5 text-accent animate-pulse" />
+                <div className="text-left">
+                    <div className="text-[10px] font-black text-accent uppercase tracking-widest leading-none mb-1">暗記カード</div>
+                    <div className="text-[8px] font-medium text-slate-500 uppercase tracking-widest">重要用語の総復習 [F]</div>
+                </div>
+            </button>
+            <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 px-6 py-3 rounded-2xl">
+                <Cpu className="w-4 h-4 text-emerald-500" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('total_nodes')}: {totalQuestions}</span>
+            </div>
         </div>
       </div>
 

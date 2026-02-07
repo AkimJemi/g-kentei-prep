@@ -6,7 +6,8 @@ import { Terminal, Cpu, Shield, ArrowRight, UserPlus, LogIn, Database } from 'lu
 
 export const LoginView: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const [username, setUsername] = useState('');
+  const [userId, setUserId] = useState('');
+  const [nickname, setNickname] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
@@ -15,24 +16,47 @@ export const LoginView: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) return;
+    if (!userId.trim()) return;
     
     setError('');
     setIsLoading(true);
     
     try {
         if (isLogin) {
-            const success = await login(username);
-            if (!success) setError(t('user_not_found'));
+            const success = await login(userId);
+            if (!success) setError('ユーザーが見つかりません');
         } else {
-            const result = await signup(username, username.toLowerCase().includes('admin') ? 'admin' : 'user');
+            // Validation for signup
+            if (!nickname.trim()) {
+                setError('ニックネームを入力してください');
+                setIsLoading(false);
+                return;
+            }
+            
+            if (!/^[a-zA-Z]+$/.test(userId)) {
+                setError('ユーザーIDは英字のみ使用できます');
+                setIsLoading(false);
+                return;
+            }
+            
+            if (!/^[a-zA-Z0-9]+$/.test(nickname)) {
+                setError('ニックネームは英数字のみ使用できます');
+                setIsLoading(false);
+                return;
+            }
+            
+            const result = await signup(userId, nickname, userId.toLowerCase().includes('admin') ? 'admin' : 'user');
             if (!result.success) {
-                if (result.error === 'exists') setError(t('user_exists'));
-                else setError(`${t('conn_failure')} [${result.error}]`);
+                if (result.error === 'exists') setError('このユーザーIDは既に使用されています');
+                else setError(`接続エラー [${result.error}]`);
             }
         }
-    } catch (err) {
-        setError(t('conn_failure'));
+    } catch (err: any) {
+        if (err.message === 'USER_SUSPENDED') {
+            setError('このアカウントは一時的に停止されています (Account Suspended)');
+        } else {
+            setError(t('conn_failure'));
+        }
     } finally {
         setIsLoading(false);
     }
@@ -70,15 +94,33 @@ export const LoginView: React.FC = () => {
             </div>
             <input
               type="text"
-              value={username}
+              value={userId}
               onChange={(e) => {
-                setUsername(e.target.value);
+                setUserId(e.target.value);
                 if (error) setError('');
               }}
-              placeholder={t('identifier_placeholder')}
+              placeholder={isLogin ? "ユーザーID (User ID)" : "ユーザーID (英字のみ)"}
               className="block w-full pl-12 pr-4 py-4 bg-slate-900/50 border border-slate-800 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all font-mono text-sm shadow-inner"
             />
           </div>
+
+          {!isLogin && (
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <UserPlus className="w-4 h-4 text-slate-500 group-focus-within:text-emerald-500 transition-colors" />
+              </div>
+              <input
+                type="text"
+                value={nickname}
+                onChange={(e) => {
+                  setNickname(e.target.value);
+                  if (error) setError('');
+                }}
+                placeholder="ニックネーム (英数字のみ)"
+                className="block w-full pl-12 pr-4 py-4 bg-slate-900/50 border border-slate-800 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all font-mono text-sm shadow-inner"
+              />
+            </div>
+          )}
 
           <AnimatePresence mode="wait">
             {error && (
@@ -96,7 +138,7 @@ export const LoginView: React.FC = () => {
 
           <button
             type="submit"
-            disabled={isLoading || !username.trim()}
+            disabled={isLoading || !userId.trim()}
             className="w-full group relative overflow-hidden bg-accent hover:bg-sky-400 disabled:bg-slate-800 text-primary font-black uppercase tracking-widest py-4 rounded-2xl shadow-[0_0_30px_rgba(56,189,248,0.2)] transition-all active:scale-[0.98] disabled:scale-100"
           >
              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer" />

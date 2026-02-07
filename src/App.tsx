@@ -11,20 +11,62 @@ import { Statistics } from './components/Statistics';
 import { Quiz } from './components/Quiz';
 import { AdminDashboard } from './components/AdminDashboard';
 import { Layout } from './components/Layout';
-import { Cpu, Database, Clock, BarChart3, Layout as LayoutIcon, Github, Shield, Radio, LogOut, Settings } from 'lucide-react';
+import { ContactView } from './components/ContactView';
+import { SubmitQuestionView } from './components/SubmitQuestionView';
+import { Toast } from './components/Toast';
+import { NotificationView } from './components/NotificationView';
+import { FlashcardView } from './components/FlashcardView';
+import { Cpu, Database, Clock, BarChart3, Layout as LayoutIcon, Github, Shield, Radio, LogOut, Settings, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
 export default function App() {
-  const [view, setView] = useState<'dashboard' | 'study' | 'history' | 'quiz' | 'stats' | 'admin'>('dashboard');
+  const { t } = useLanguageStore();
+  const [view, setView] = useState<'dashboard' | 'study' | 'history' | 'quiz' | 'stats' | 'admin' | 'contact' | 'submit' | 'notifications' | 'flashcards'>('dashboard');
   const [isBooting, setIsBooting] = useState(true);
-  
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | null }>({ message: '', type: null });
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+
+  const { isAuthenticated, isAdmin, logout, currentUser } = useAuthStore();
   const startQuiz = useQuizStore((state) => state.startQuiz);
   const isActive = useQuizStore((state) => state.isActive);
   const endQuiz = useQuizStore((state) => state.endQuiz);
 
-  const { t } = useLanguageStore();
-  const { isAuthenticated, isAdmin, logout, currentUser } = useAuthStore();
+  const fetchData = async () => {
+    try {
+      // Fetch notifications for the current user
+      const notifUrl = currentUser ? `/api/notifications?userId=${currentUser.userId}` : '/api/notifications';
+      const res = await fetch(notifUrl);
+      const data = await res.json();
+      const unread = data.filter((n: any) => !n.isRead);
+      setUnreadNotifications(unread.length);
+      
+      // If there are unread urgent notifications, notify the user
+      const urgent = unread.find((n: any) => n.type === 'warning' || n.type === 'error');
+      if (urgent) {
+        showToast(`未読の重要通知があります: ${urgent.title}`, 'error');
+      }
+
+
+    } catch (e) {
+      console.error("Failed to fetch notifications:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchData();
+      // Refresh unread count every 60 seconds
+      const interval = setInterval(fetchData, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser, isAdmin]);
+  
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast({ message: '', type: null }), 3000);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setIsBooting(false), 2000);
@@ -58,6 +100,7 @@ export default function App() {
         case 'l': handleNavigate('history'); break;
         case 'm': handleNavigate('stats'); break;
         case 'a': if (isAdmin) handleNavigate('admin'); break;
+        case 'f': handleNavigate('flashcards'); break;
       }
     };
 
@@ -99,12 +142,24 @@ export default function App() {
   }
 
   return (
-    <Layout>
+    <Layout onNavigate={handleNavigate}>
       <div className="flex flex-col h-full overflow-hidden relative">
         <NeuralBackground />
         {/* Universal Header with Shortcuts */}
         <header className="px-6 py-4 flex items-center justify-between border-b border-white/[0.04] bg-slate-950/50 backdrop-blur-md sticky top-0 z-50">
           <div className="flex items-center gap-12">
+                <button
+                  onClick={() => handleNavigate('notifications')}
+                  className={clsx(
+                    "p-2 rounded-lg transition-all group relative",
+                    view === 'notifications' ? "bg-accent/10 text-accent" : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-slate-950 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                  )}
+                </button>
             <nav className="hidden md:flex items-center gap-1">
               {[
                 { id: 'dashboard', icon: LayoutIcon, label: t('home'), shortcut: 'H' },
@@ -132,7 +187,7 @@ export default function App() {
             <div className="flex items-center gap-4">
             {currentUser && (
               <div className="hidden sm:flex flex-col items-end mr-2">
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">{currentUser.username}</span>
+                <span className="text-[10px] font-black text-white uppercase tracking-widest">{currentUser.nickname}</span>
                 <span className="text-[7px] font-mono text-accent uppercase tracking-[0.2em]">{currentUser.role === 'admin' ? t('admin') : 'USER'} PROTOCOL</span>
               </div>
             )}
@@ -168,21 +223,42 @@ export default function App() {
                   onStartQuiz={() => handleNavigate('study')} 
                   onViewStats={() => handleNavigate('stats')}
                   onStartWeakPointQuiz={() => setView('quiz')}
-                  onResumeSession={(category) => {
-                    startQuiz(category);
-                    setView('quiz');
+                  onResumeSession={async (category) => {
+                    const result = await startQuiz(category);
+                    if (result.success) {
+                        setView('quiz');
+                    } else {
+                        showToast(result.error || 'Failed to resume session', 'error');
+                    }
                   }}
                 />
               )}
-              {view === 'study' && <StudyMode onStartPractice={(cat) => {
-                startQuiz(cat);
-                setView('quiz');
+              {view === 'study' && <StudyMode onStartPractice={async (cat) => {
+                const result = await startQuiz(cat);
+                if (result.success) {
+                    setView('quiz');
+                } else {
+                    showToast(result.error || 'Failed to initialize sector', 'error');
+                }
               }} />}
               {view === 'history' && <HistoryView />}
               {view === 'stats' && <Statistics />}
-              {view === 'admin' && isAdmin && <AdminDashboard />}
+              {view === 'admin' && <AdminDashboard />}
               {view === 'quiz' && <Quiz onBack={() => handleNavigate('study')} />}
+              {view === 'notifications' && <NotificationView />}
+              {view === 'flashcards' && <FlashcardView onBack={() => handleNavigate('study')} />}
+              {view === 'contact' && <ContactView />}
+              {view === 'submit' && <SubmitQuestionView />}
             </motion.div>
+          </AnimatePresence>
+          <AnimatePresence>
+            {toast.type && (
+              <Toast 
+                  message={toast.message} 
+                  type={toast.type} 
+                  onClose={() => setToast({ message: '', type: null })} 
+              />
+            )}
           </AnimatePresence>
         </main>
 
@@ -202,7 +278,10 @@ export default function App() {
                <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-white transition-colors">
                   <Github className="w-4 h-4" />
                </a>
-               <p className="text-slate-700 text-[10px] font-black uppercase tracking-[0.3em]">
+               <p 
+                 onClick={() => setView('admin')}
+                 className="text-slate-700 text-[10px] font-black uppercase tracking-[0.3em] cursor-pointer hover:text-red-500 transition-colors"
+               >
                  &copy; {new Date().getFullYear()} {t('copyright')}
                </p>
             </div>

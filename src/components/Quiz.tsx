@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuizStore } from '../store/useQuizStore';
 import { useLanguageStore } from '../store/useLanguageStore';
-import { CheckCircle2, XCircle, RefreshCw, AlertCircle, Award, ChevronLeft, ChevronRight, LogOut, Terminal, Cpu, Volume2, VolumeX } from 'lucide-react';
+import { CheckCircle2, XCircle, RefreshCw, AlertCircle, Award, ChevronLeft, ChevronRight, LogOut, Terminal, Cpu, Volume2, VolumeX, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
@@ -24,13 +24,39 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
     endQuiz
   } = useQuizStore();
 
-  const { language, t } = useLanguageStore();
+  const { t } = useLanguageStore();
   const [isReading, setIsReading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(questions.length * 60); // 60 seconds per question
+  const [timerActive, setTimerActive] = useState(true);
+
+  useEffect(() => {
+    if (!timerActive || showResults || timeLeft <= 0) return;
+    
+    const interval = setInterval(() => {
+      setTimeLeft(prev => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timerActive, showResults, timeLeft]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && !showResults) {
+        setTimerActive(false);
+        // Force finish when time up? Or just show 0? 
+        // For now, let's keep it visible at 0.
+    }
+  }, [timeLeft, showResults]);
+
+  const formatTime = (seconds: number) => {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min}:${sec.toString().padStart(2, '0')}`;
+  };
 
   const currentQuestion = questions[currentQuestionIndex];
   
-  const localizedContent = language && currentQuestion?.translations?.[language] 
-    ? currentQuestion.translations[language] 
+  const localizedContent = currentQuestion?.translations?.ja 
+    ? currentQuestion.translations.ja 
     : { 
         question: currentQuestion?.question, 
         options: currentQuestion?.options, 
@@ -55,8 +81,8 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
     const utterance = new SpeechSynthesisUtterance(textToRead);
     
     // Set language for voice
-    if (language === 'ja') utterance.lang = 'ja-JP';
-    else utterance.lang = 'en-US';
+    // Set language for voice
+    utterance.lang = 'ja-JP';
 
     utterance.onstart = () => setIsReading(true);
     utterance.onend = () => setIsReading(false);
@@ -120,6 +146,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
             score={score} 
             total={questions.length} 
             onRetry={resetQuiz} 
+            onBack={onBack}
             t={t}
         />
     );
@@ -153,9 +180,18 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                 >
                     <ChevronLeft className="w-4 h-4" />
                 </button>
-                <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
-                    <Terminal className="w-3 h-3 text-accent" />
-                    {localizedContent.category || 'Neural Scan'}
+                <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-2 flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <Terminal className="w-3 h-3 text-accent" />
+                        分野: {localizedContent.category || 'Neural Scan'}
+                    </div>
+                    <div className={clsx(
+                        "flex items-center gap-2 px-3 py-1 rounded-lg border",
+                        timeLeft < 60 ? "bg-red-500/10 border-red-500/20 text-red-500 animate-pulse" : "bg-slate-800 border-slate-700 text-slate-300"
+                    )}>
+                        <Clock className="w-3 h-3" />
+                        <span className="font-mono">{formatTime(timeLeft)}</span>
+                    </div>
                 </div>
                 <button 
                     disabled={!hasAnswered || currentQuestionIndex === questions.length - 1}
@@ -174,7 +210,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                     <Cpu className="w-3 h-3" />
                     {t('question')} {currentQuestionIndex + 1}
                 </span>
-                <span>{Math.round(((currentQuestionIndex) / questions.length) * 100)}% Matrix Coverage</span>
+                <span>{Math.round(((currentQuestionIndex) / questions.length) * 100)}% 進行度</span>
             </div>
             <div className="h-1 bg-slate-900 rounded-full overflow-hidden">
                 <motion.div 
@@ -201,7 +237,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                 <div className="mb-10 relative">
                     <div className="flex items-center gap-3 mb-6">
                         <span className="inline-block px-3 py-1 rounded-lg bg-accent/10 text-accent text-[9px] font-black tracking-[0.2em] uppercase border border-accent/20">
-                            Sector: {localizedContent.category}
+                            分野: {localizedContent.category}
                         </span>
                         <div className="h-[1px] flex-grow bg-slate-800/50" />
                     </div>
@@ -326,7 +362,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
   );
 };
 
-const QuizResults: React.FC<{ score: number, total: number, onRetry: () => void, t: (k: string) => string }> = ({ score, total, onRetry, t }) => {
+const QuizResults: React.FC<{ score: number, total: number, onRetry: () => void, onBack: () => void, t: (k: string) => string }> = ({ score, total, onRetry, onBack, t }) => {
     return (
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
@@ -346,21 +382,21 @@ const QuizResults: React.FC<{ score: number, total: number, onRetry: () => void,
           </motion.div>
           <div className="space-y-2">
               <h2 className="text-5xl md:text-6xl font-black italic uppercase tracking-tight bg-gradient-to-br from-white via-slate-200 to-slate-500 bg-clip-text text-transparent">{t('scan_complete')}</h2>
-              <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px]">G-Kentei Neural Evaluation protocol finished</p>
+              <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px]">G検定 模擬試験終了</p>
           </div>
         </div>
         
         <div className="grid grid-cols-2 gap-6 max-w-md mx-auto">
              <div className="bg-secondary/20 p-6 rounded-3xl border border-slate-800 relative group overflow-hidden">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 blur-[20px] rounded-full" />
-                <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2">Precision</div>
+                <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2">正答率</div>
                 <div className="text-4xl font-black font-mono text-emerald-500 italic">
                     {Math.round((score / total) * 100)}%
                 </div>
              </div>
              <div className="bg-secondary/20 p-6 rounded-3xl border border-slate-800 relative group overflow-hidden">
                 <div className="absolute top-0 right-0 w-16 h-16 bg-accent/5 blur-[20px] rounded-full" />
-                <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2">Node Count</div>
+                <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2">問題数</div>
                 <div className="text-4xl font-black font-mono text-white italic">
                     {total}
                 </div>
@@ -376,6 +412,17 @@ const QuizResults: React.FC<{ score: number, total: number, onRetry: () => void,
             <RefreshCw className="w-5 h-5" />
             <span>{t('reset')}</span>
             <span className="text-[10px] font-black text-primary/40">[R]</span>
+        </motion.button>
+        
+        <motion.button
+            whileHover={{ scale: 1.02, opacity: 0.8 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onBack}
+            className="w-full py-4 bg-slate-800 text-slate-400 font-black uppercase tracking-[0.2em] rounded-2xl border border-slate-700 hover:text-white flex items-center justify-center gap-3"
+        >
+            <LogOut className="w-5 h-5" />
+            <span>{t('return_to_base')}</span>
+            <span className="text-[10px] font-black text-slate-500">[B]</span>
         </motion.button>
       </motion.div>
     );

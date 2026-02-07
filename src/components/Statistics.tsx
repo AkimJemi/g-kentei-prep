@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { db } from '../db/db';
-import { questions } from '../data/questions';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useAuthStore } from '../store/useAuthStore';
+import type { Question } from '../types';
 import { Brain, TrendingUp, BarChart3, AlertTriangle, CheckCircle2, Target, PieChart, Zap, ChevronLeft, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -14,17 +14,26 @@ export const Statistics: React.FC = () => {
         weakQuestions: { qId: number; count: number }[];
         categoryStats: { [cat: string]: { total: number; correct: number; mistakes: number } };
     } | null>(null);
+    const [allQuestions, setAllQuestions] = useState<Question[]>([]);
     const [selectedQuestion, setSelectedQuestion] = useState<number | null>(null);
-    const { t, language } = useLanguageStore();
+    const { t } = useLanguageStore();
     const { currentUser } = useAuthStore();
 
     useEffect(() => {
-        if (!currentUser?.id) {
+        // Fetch All Questions
+        fetch('/api/questions')
+            .then(res => res.json())
+            .then(data => setAllQuestions(data))
+            .catch(console.error);
+    }, []);
+
+    useEffect(() => {
+        if (!currentUser?.userId || allQuestions.length === 0) {
             setStats(null);
             return;
         }
 
-        db.attempts.where('userId').equals(currentUser.id).toArray().then((attempts: any[]) => {
+        db.attempts.where('userId').equals(currentUser.userId).toArray().then((attempts: any[]) => {
             if (attempts.length === 0) {
                 setStats(null);
                 return;
@@ -47,7 +56,7 @@ export const Statistics: React.FC = () => {
                 if (attempt.wrongQuestionIds) {
                     attempt.wrongQuestionIds.forEach((id: number) => {
                         errorMap[id] = (errorMap[id] || 0) + 1;
-                        const q = questions.find(item => item.id === id);
+                        const q = allQuestions.find(item => item.id === id);
                         if (q) {
                             if (!catStats[q.category]) {
                                 catStats[q.category] = { total: 0, correct: 0, mistakes: 0 };
@@ -69,8 +78,11 @@ export const Statistics: React.FC = () => {
                 weakQuestions,
                 categoryStats: catStats
             });
+        }).catch((error: any) => {
+            console.error("Failed to load statistics:", error);
+            setStats(null);
         });
-    }, [currentUser]);
+    }, [currentUser, allQuestions]);
 
     if (!stats) {
         return (
@@ -237,13 +249,18 @@ export const Statistics: React.FC = () => {
                 </h3>
                 <div className="grid gap-4">
                     {stats.weakQuestions.map(({ qId, count }) => {
-                        const question = questions.find(q => q.id === qId);
+                        const question = allQuestions.find(q => q.id === qId);
                         if (!question) return null;
                         const isExpanded = selectedQuestion === qId;
 
-                        const locQ = language && question.translations?.[language] 
-                            ? question.translations[language] 
-                            : { question: question.question, options: question.options, explanation: question.explanation, category: question.category };
+
+                        const locQ = { 
+                            question: question.question, 
+                            options: question.options, 
+                            explanation: question.explanation, 
+                            category: question.category 
+                        };
+
 
                         return (
                             <div key={qId} className="bg-secondary/10 border border-white/[0.04] rounded-2xl overflow-hidden group hover:border-accent/20 transition-all shadow-lg">

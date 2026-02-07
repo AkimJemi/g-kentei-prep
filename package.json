@@ -1,7 +1,7 @@
 {
   "name": "g-kentei-prep",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.2.0",
   "type": "module",
   "engines": {
     "node": ">=20.15.0"
@@ -15,17 +15,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "better-sqlite3": "^12.6.2",
     "clsx": "^2.1.1",
+    "cors": "^2.8.6",
     "dexie": "^4.3.0",
+    "express": "^5.2.1",
     "framer-motion": "^12.31.3",
     "lucide-react": "^0.563.0",
+    "nodemailer": "^8.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwind-merge": "^3.4.0",
-    "zustand": "^5.0.11",
-    "better-sqlite3": "^12.6.2",
-    "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware';
 
 interface LanguageState {
     t: (key: string) => string;
-    language: 'ja';
 }
 
 const translations: Record<string, string> = {
@@ -20,7 +19,6 @@ const translations: Record<string, string> = {
     full_system_calibration: '全システム校正',
     all_topics: '全トピック',
     full_system_desc: 'すべてのニューラルセクターに対して包括的なスキャンを実行します。',
-
     core_logic: 'コアロジック',
     legacy_logs: 'レガシーログ',
     algorithmic_base: 'アルゴリズムベース',
@@ -31,12 +29,10 @@ const translations: Record<string, string> = {
     numerical_kernel: '数値カーネル',
     governance_protocols: 'ガバナンスプロトコル',
     ethical_guardrails: '倫理的ガードレール',
-
     select_sector: 'セクタ選択',
     sector_definition: '対象の知識領域を選択してください。',
-    return_to_base: '戻る',
+    return_to_base: 'メニューに戻る',
     total_nodes: '総ノード数',
-
     abort_scan: '戻る',
     question: '問題',
     verified: '検証済み',
@@ -47,7 +43,6 @@ const translations: Record<string, string> = {
     reset: 'リセット',
     voice_control: '音声制御',
     options: '選択肢',
-
     neural_logs: 'ニューラルログ',
     wipe_archive: 'アーカイブ消去',
     trace_log: 'トレースログ解析',
@@ -58,7 +53,6 @@ const translations: Record<string, string> = {
     node_mastery: 'ノード習熟度',
     input: '入力',
     required: '正解',
-
     system_analytics: 'システム分析',
     global_accuracy: '総合精度',
     neural_cycles: '学習サイクル',
@@ -68,12 +62,10 @@ const translations: Record<string, string> = {
     recalibration_points: '再構成ポイント',
     no_neural_data: '分析データなし',
     no_neural_data_desc: '学習シーケンスを開始して、分析インサイトとパフォーマンス指標を生成してください。',
-
     home: 'ホーム',
     study: '学習',
     logs: '履歴',
     metrics: '分析',
-
     cat_fundamentals: 'AIの基礎',
     cat_trends: 'AIをめぐる動向',
     cat_ml: '機械学習の概要',
@@ -84,8 +76,7 @@ const translations: Record<string, string> = {
     cat_math: '数理・統計',
     cat_law: '法律・契約',
     cat_ethics: '倫理・ガバナンス',
-
-    scan_complete: 'スキャン 완료',
+    scan_complete: 'スキャン 完了',
     matrix_coverage: 'マトリックス・カバレッジ',
     precision: '精度',
     node_count: 'ノード数',
@@ -94,7 +85,6 @@ const translations: Record<string, string> = {
     total_errors: '合計不正確ノード',
     optimized_status: '最適化された神経状態',
     sector_definition_long: '初期化する知識ドメインを選択してください。',
-
     admin: '管理者',
     encrypted_store: '暗号化データストア',
     syllabus_version: 'シラバス: 2024年版',
@@ -118,7 +108,6 @@ const translations: Record<string, string> = {
     active_neural_profiles: '有効なニューラル・プロファイル',
     booting_system: 'システム起動中',
     logout: 'ログアウト',
-
     login_interface: 'G検定 インターフェース',
     signup_interface: 'G検定 プロファイル作成',
     establish_downlink: 'ダウンリンク・プロトコル確立中',
@@ -131,7 +120,6 @@ const translations: Record<string, string> = {
     need_register: '新規プロファイルを作成しますか？',
     already_active: '登録済みプロファイルで接続しますか？',
     security_warning: '警告: 不正アクセス試行はすべて監視ログに記録されます。',
-
     master_gkentei: 'G検定をマスターする',
     jdla_sub: 'JDLA ディープラーニングG検定対策ツール',
     mastery_basis: '習熟度に基づいた評価',
@@ -149,10 +137,7 @@ const translations: Record<string, string> = {
 export const useLanguageStore = create<LanguageState>()(
     persist(
         () => ({
-            language: 'ja',
-            t: (key) => {
-                return translations[key] || key;
-            }
+            t: (key) => translations[key] || key
         }),
         {
             name: 'g-kentei-language'

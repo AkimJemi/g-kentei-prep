@@ -1,13 +1,24 @@
 import { create } from 'zustand';
-import type { QuizState } from '../types';
-import { questions as allQuestions } from '../data/questions';
+import type { QuizState, Question } from '../types';
 import { db } from '../db/db';
 import { useAuthStore } from './useAuthStore';
 
+// Helper to fetch all questions
+const fetchAllQuestions = async (): Promise<Question[]> => {
+    try {
+        const res = await fetch('/api/questions');
+        if (!res.ok) throw new Error('Failed to fetch questions');
+        return await res.json();
+    } catch (error) {
+        console.error("Failed to load questions from DB", error);
+        return [];
+    }
+};
+
 interface ExtendedQuizState extends QuizState {
     isActive: boolean; // Track if a quiz is currently active
-    startQuiz: (category: string) => Promise<void>;
-    startWeakPointQuiz: (questionIds: number[]) => void;
+    startQuiz: (category: string) => Promise<{ success: boolean; error?: string }>;
+    startWeakPointQuiz: (questionIds: number[]) => Promise<void>;
     saveProgress: (finalScore?: number) => Promise<void>;
     endQuiz: () => void;
     discardSession: () => void;
@@ -23,38 +34,53 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
     isActive: false,
 
     startQuiz: async (category: string) => {
-        const filtered = category === 'All'
-            ? allQuestions
-            : allQuestions.filter(q => q.category === category);
+        try {
+            // Fetch all questions from server (both system and approved user submissions)
+            const allQuestions = await fetchAllQuestions();
 
-        // Check for existing session
-        const userId = useAuthStore.getState().currentUser?.id;
-        if (!userId) return;
+            const filtered = category === 'All'
+                ? allQuestions
+                : allQuestions.filter(q => q.category === category);
 
-        const session = await db.sessions.get({ userId, category });
+            if (filtered.length === 0) {
+                console.warn(`[Neural Store] No questions found for category: ${category}`);
+                return { success: false, error: 'SECTOR_EMPTY: No data available for this category.' };
+            }
 
-        if (session) {
-            set({
-                questions: filtered,
-                currentQuestionIndex: session.currentQuestionIndex,
-                score: 0,
-                showResults: false,
-                answers: session.answers,
-                isActive: true,
-            });
-        } else {
-            set({
-                questions: filtered,
-                currentQuestionIndex: 0,
-                score: 0,
-                showResults: false,
-                answers: [],
-                isActive: true,
-            });
+            // Check for existing session
+            const userId = useAuthStore.getState().currentUser?.userId;
+            if (!userId) return { success: false, error: 'AUTH_ERROR: User session invalid.' };
+
+            const session = await db.sessions.get({ userId, category });
+
+            if (session) {
+                set({
+                    questions: filtered,
+                    currentQuestionIndex: session.currentQuestionIndex,
+                    score: 0,
+                    showResults: false,
+                    answers: session.answers,
+                    isActive: true,
+                });
+            } else {
+                set({
+                    questions: filtered,
+                    currentQuestionIndex: 0,
+                    score: 0,
+                    showResults: false,
+                    answers: [],
+                    isActive: true,
+                });
+            }
+            return { success: true };
+        } catch (error) {
+            console.error("[Neural Store] Failed to start quiz:", error);
+            return { success: false, error: 'CONNECTION_ERROR: Failed to initialize Neural Link.' };
         }
     },
 
-    startWeakPointQuiz: (questionIds: number[]) => {
+    startWeakPointQuiz: async (questionIds: number[]) => {
+        const allQuestions = await fetchAllQuestions();
         const filtered = allQuestions.filter(q => questionIds.includes(q.id));
 
         set({
@@ -73,7 +99,7 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
             newAnswers[qIndex] = aIndex;
 
             // Sync session to DB
-            const userId = useAuthStore.getState().currentUser?.id;
+            const userId = useAuthStore.getState().currentUser?.userId;
             const category = state.questions[0]?.category || 'All';
             if (userId) {
                 db.sessions.put({
@@ -96,7 +122,7 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
             set({ currentQuestionIndex: nextIndex });
 
             // Sync session to DB
-            const userId = useAuthStore.getState().currentUser?.id;
+            const userId = useAuthStore.getState().currentUser?.userId;
             const category = state.questions[0]?.category || 'All';
             if (userId) {
                 db.sessions.update([userId, category], {
@@ -112,7 +138,7 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
                 }
             });
             // Clear session on finish
-            const userId = useAuthStore.getState().currentUser?.id;
+            const userId = useAuthStore.getState().currentUser?.userId;
             const category = state.questions[0]?.category || 'All';
             if (userId) {
                 db.sessions.delete([userId, category]);
@@ -135,7 +161,7 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
             set({ currentQuestionIndex: prevIndex });
 
             // Sync session to DB
-            const userId = useAuthStore.getState().currentUser?.id;
+            const userId = useAuthStore.getState().currentUser?.userId;
             const category = state.questions[0]?.category || 'All';
             if (userId) {
                 db.sessions.update([userId, category], {
@@ -172,7 +198,7 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
             const scoreToPersist = finalScore !== undefined ? finalScore : (showResults ? score : localCalculatedScore);
 
             try {
-                const userId = useAuthStore.getState().currentUser?.id;
+                const userId = useAuthStore.getState().currentUser?.userId;
                 if (!userId) {
                     console.warn("[Neural Store] Link Aborted: Primary identifier (userId) not detected");
                     return;
@@ -203,7 +229,7 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
 
     discardSession: () => {
         const state = get();
-        const userId = useAuthStore.getState().currentUser?.id;
+        const userId = useAuthStore.getState().currentUser?.userId;
         const category = state.questions[0]?.category || 'All';
         if (userId) {
             db.sessions.delete([userId, category]);
@@ -219,7 +245,7 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
 
     resetQuiz: () => {
         const state = get();
-        const userId = useAuthStore.getState().currentUser?.id;
+        const userId = useAuthStore.getState().currentUser?.userId;
         const category = state.questions[0]?.category || 'All';
         if (userId) {
             db.sessions.delete([userId, category]);
@@ -235,7 +261,7 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
     },
 
     getActiveSessions: async () => {
-        const userId = useAuthStore.getState().currentUser?.id;
+        const userId = useAuthStore.getState().currentUser?.userId;
         if (!userId) return [];
         return await db.sessions.where('userId').equals(userId).toArray();
     }
