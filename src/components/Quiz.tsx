@@ -155,18 +155,18 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
   if (!currentQuestion) return null;
 
   return (
-    <div className="max-w-3xl mx-auto py-8">
+    <div className="max-w-3xl mx-auto py-4 md:py-8 px-2 md:px-0 pb-32 md:pb-8">
         {/* Header with Back button */}
         <div className="flex items-center justify-between mb-8 overflow-hidden">
             <motion.button 
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 onClick={handleQuit}
-                className="flex items-center space-x-2 text-slate-500 hover:text-white transition-colors group"
+                className="flex items-center space-x-2 text-slate-500 hover:text-white transition-colors group px-2 py-1"
             >
                 <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                <span className="text-[10px] font-black uppercase tracking-widest">{t('abort_scan')}</span>
-                <span className="text-[8px] font-black text-slate-700">[B / Esc]</span>
+                <span className="text-[10px] font-black uppercase tracking-widest hidden xs:inline">{t('abort_scan')}</span>
+                <span className="text-[8px] font-black text-slate-700 hidden sm:inline ml-1">[B / Esc]</span>
             </motion.button>
             <motion.div 
                 initial={{ y: -20, opacity: 0 }}
@@ -180,17 +180,17 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                 >
                     <ChevronLeft className="w-4 h-4" />
                 </button>
-                <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-2 flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <Terminal className="w-3 h-3 text-accent" />
-                        分野: {localizedContent.category || 'Neural Scan'}
+                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest md:tracking-[0.2em] px-1 md:px-2 flex items-center gap-2 md:gap-4 shrink-0">
+                    <div className="hidden xs:flex items-center gap-1 md:gap-2 max-w-[80px] md:max-w-none truncate">
+                        <Terminal className="w-3 h-3 text-accent shrink-0" />
+                        <span className="truncate">{localizedContent.category || 'Neural Scan'}</span>
                     </div>
                     <div className={clsx(
-                        "flex items-center gap-2 px-3 py-1 rounded-lg border",
+                        "flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 rounded-lg border",
                         timeLeft < 60 ? "bg-red-500/10 border-red-500/20 text-red-500 animate-pulse" : "bg-slate-800 border-slate-700 text-slate-300"
                     )}>
                         <Clock className="w-3 h-3" />
-                        <span className="font-mono">{formatTime(timeLeft)}</span>
+                        <span className="font-mono text-[10px] md:text-sm">{formatTime(timeLeft)}</span>
                     </div>
                 </div>
                 <button 
@@ -230,7 +230,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: -20, scale: 0.98 }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-secondary/20 backdrop-blur-md border border-slate-800 rounded-3xl p-10 shadow-2xl relative overflow-hidden group"
+                className="bg-secondary/20 backdrop-blur-md border border-slate-800 rounded-3xl p-5 md:p-10 shadow-2xl relative overflow-hidden group"
             >
                 <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 blur-[80px] -z-10 translate-x-32 -translate-y-32" />
                 
@@ -242,7 +242,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                         <div className="h-[1px] flex-grow bg-slate-800/50" />
                     </div>
                     <div className="flex items-start justify-between gap-4">
-                        <h2 className="text-2xl md:text-3xl font-black italic tracking-tighter text-white leading-tight uppercase flex-grow">
+                        <h2 className="text-xl md:text-3xl font-black italic tracking-tighter text-white leading-tight uppercase flex-grow">
                             {localizedContent.question}
                         </h2>
                         <motion.button
@@ -250,7 +250,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                             whileTap={{ scale: 0.9 }}
                             onClick={handleReadAloud}
                             className={clsx(
-                                "p-3 rounded-2xl border transition-all shrink-0",
+                                "p-2 md:p-3 rounded-2xl border transition-all shrink-0 self-start",
                                 isReading 
                                     ? "bg-accent/20 border-accent text-accent animate-pulse" 
                                     : "bg-slate-900/50 border-slate-800 text-slate-500 hover:text-accent hover:border-accent/50"
@@ -258,8 +258,8 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                             title="Read Aloud"
                         >
                             <div className="flex flex-col items-center gap-1">
-                                {isReading ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-                                <span className="text-[8px] font-black text-accent/60">[V]</span>
+                                {isReading ? <VolumeX className="w-5 h-5 md:w-6 md:h-6" /> : <Volume2 className="w-5 h-5 md:w-6 md:h-6" />}
+                                <span className="hidden md:block text-[8px] font-black text-accent/60">[V]</span>
                             </div>
                         </motion.button>
                     </div>
@@ -280,7 +280,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                                 onClick={() => !hasAnswered && setAnswer(currentQuestionIndex, idx)}
                                 disabled={hasAnswered}
                                 className={clsx(
-                                    "w-full text-left p-5 rounded-2xl border-2 transition-all duration-300 flex items-center justify-between relative overflow-hidden active:scale-[0.98]",
+                                    "w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-all duration-300 flex items-center justify-between relative overflow-hidden active:scale-[0.98] min-h-[64px]",
                                     hasAnswered 
                                         ? isThisCorrect 
                                             ? "border-green-500/50 bg-green-500/10 text-green-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]" 

@@ -316,14 +316,21 @@ app.delete('/api/admin/categories/:id', async (req, res) => {
 });
 
 
-app.get('/api/admin/stats', (req, res) => {
+app.get('/api/admin/stats', async (req, res) => {
     try {
-        const unreadMessages = db.prepare('SELECT count(*) as count FROM messages WHERE status = ?').get('unread').count;
-        const pendingSubmissions = db.prepare('SELECT count(*) as count FROM submitted_questions WHERE status = ?').get('pending').count;
-        const totalUsers = db.prepare('SELECT count(*) as count FROM users').get().count;
-        const totalQuestions = db.prepare('SELECT count(*) as count FROM questions').get().count;
-        res.json({ unreadMessages, pendingSubmissions, totalUsers, totalQuestions });
+        const unreadMessagesResult = await pool.query('SELECT count(*) as count FROM messages WHERE status = $1', ['unread']);
+        const pendingSubmissionsResult = await pool.query('SELECT count(*) as count FROM submitted_questions WHERE status = $1', ['pending']);
+        const totalUsersResult = await pool.query('SELECT count(*) as count FROM users');
+        const totalQuestionsResult = await pool.query('SELECT count(*) as count FROM questions');
+        
+        res.json({ 
+            unreadMessages: parseInt(unreadMessagesResult.rows[0].count),
+            pendingSubmissions: parseInt(pendingSubmissionsResult.rows[0].count),
+            totalUsers: parseInt(totalUsersResult.rows[0].count),
+            totalQuestions: parseInt(totalQuestionsResult.rows[0].count)
+        });
     } catch (e) {
+        console.error('[Admin Stats Error]:', e);
         res.status(500).json({ error: e.message });
     }
 });

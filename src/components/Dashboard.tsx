@@ -124,15 +124,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
       className="space-y-12 pb-20"
     >
       {/* Hero Section */}
-      <div className="text-center space-y-6 py-12 relative">
+      <div className="max-w-6xl mx-auto text-center space-y-6 py-12 relative">
         {/* Decorative background glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/10 blur-[120px] rounded-full -z-10" />
         
-        <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none">{t('master_gkentei')}　　　<span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-indigo-400 to-purple-500 animate-gradient">G-KENTEI</span>
+        <motion.h1 variants={itemVariants} className="text-3xl md:text-5xl lg:text-7xl font-black italic tracking-tighter uppercase leading-tight md:leading-none">
+            {t('master_gkentei')}
+            <span className="block md:inline text-transparent bg-clip-text bg-gradient-to-r from-accent via-indigo-400 to-purple-500 animate-gradient"> G-KENTEI</span>
         </motion.h1>
         
-        <motion.p variants={itemVariants} className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
-          {t('jdla_sub')}
+        <motion.p variants={itemVariants} className="text-sm md:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium px-4">
+            {t('jdla_sub')}
           <span className="block text-slate-500 text-sm mt-2 uppercase tracking-[0.3em] font-black">{t('neural_status')} // {t('optimized').toUpperCase()}</span>
         </motion.p>
 
@@ -158,7 +160,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
       </div>
 
       {/* Stats Grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <motion.div variants={itemVariants} className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard 
             icon={Target} 
             color="text-accent" 
@@ -185,13 +187,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
         />
       </motion.div>
 
-      {/* Community Chat - Full Width */}
-      <motion.div variants={itemVariants}>
+      {/* Community Chat */}
+      <motion.div variants={itemVariants} className="max-w-6xl mx-auto">
           <GroupChat />
       </motion.div>
 
       {/* Site Guide & Shortcuts */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900/50 border border-slate-800 rounded-3xl p-6">
+      <motion.div variants={itemVariants} className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900/50 border border-slate-800 rounded-3xl p-6">
           <div className="space-y-4">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <span className="bg-emerald-500/20 p-2 rounded-lg text-emerald-400">✨</span>
@@ -260,7 +262,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
       </motion.div>
 
       {/* Action Grid: Resume, Weakness */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Resume Session Banner */}
             {stats.activeSessions.length > 0 && (
                 <motion.div 

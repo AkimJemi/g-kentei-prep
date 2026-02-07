@@ -126,11 +126,11 @@ export const HistoryView: React.FC = () => {
                         <span className="text-[8px] font-black text-slate-800">[B / Esc]</span>
                     </button>
                     <div className="space-y-2">
-                        <h1 className="text-4xl font-black italic tracking-tighter uppercase flex items-center gap-4">
-                            <History className="w-8 h-8 text-accent" />
+                        <h1 className="text-2xl md:text-4xl font-black italic tracking-tighter uppercase flex items-center gap-3 md:gap-4">
+                            <History className="w-6 h-6 md:w-8 md:h-8 text-accent" />
                             {t('neural_logs')}
                         </h1>
-                        <p className="text-slate-500 font-medium tracking-tight">過去の評価とノード習熟度データの永続的なストレージ。</p>
+                        <p className="text-xs md:text-base text-slate-500 font-medium tracking-tight">過去の評価とノード習熟度データの永続的なストレージ。</p>
                     </div>
                 </div>
                 
@@ -184,38 +184,38 @@ export const HistoryView: React.FC = () => {
                                 <div key={attempt.id} className="bg-secondary/10 border border-white/[0.04] rounded-3xl overflow-hidden group hover:border-accent/20 transition-all shadow-lg">
                                     <button 
                                         onClick={() => setExpandedSessionId(isExpanded ? null : attempt.id!)}
-                                        className="w-full text-left p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
+                                        className="w-full text-left p-5 md:p-8 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6"
                                     >
-                                        <div className="flex items-center gap-8">
+                                        <div className="flex items-center gap-4 md:gap-8">
                                             <div className={clsx(
-                                                "w-1.5 h-16 rounded-full", 
+                                                "w-1 md:w-1.5 h-12 md:h-16 rounded-full", 
                                                 isSuccess ? "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]"
                                             )} />
-                                            <div>
-                                                <div className="flex items-center gap-3 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">
-                                                    <Calendar className="w-3.5 h-3.5" />
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 md:gap-3 text-slate-500 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-1 md:mb-2 italic">
+                                                    <Calendar className="w-3 md:w-3.5 h-3 md:h-3.5" />
                                                     <span>{attempt.date.toLocaleString()}</span>
                                                 </div>
-                                                <div className="text-2xl font-black italic uppercase tracking-tighter text-white group-hover:text-accent transition-colors">
+                                                <div className="text-lg md:text-2xl font-black italic uppercase tracking-tighter text-white group-hover:text-accent transition-colors truncate">
                                                     {attempt.category === 'All' ? t('system_evolution') : (CATEGORY_MAP[attempt.category] || attempt.category)}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-12">
-                                            <div className="text-right">
-                                                <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">{t('nodes_visited')}</div>
-                                                <div className="font-mono text-2xl text-white font-black italic">
+                                        <div className="flex items-center justify-between md:justify-end gap-6 md:gap-12 border-t border-white/[0.04] md:border-0 pt-4 md:pt-0">
+                                            <div className="text-left md:text-right">
+                                                <div className="text-[8px] md:text-[9px] font-black text-slate-600 uppercase tracking-widest mb-0.5 md:mb-1">{t('nodes_visited')}</div>
+                                                <div className="font-mono text-xl md:text-2xl text-white font-black italic">
                                                     {attempt.score}<span className="text-slate-700"> / {attempt.totalQuestions}</span>
                                                 </div>
                                             </div>
-                                            <div className="text-right min-w-[100px]">
-                                                <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">{t('efficiency')}</div>
-                                                <div className={clsx("font-black text-4xl font-mono italic", isSuccess ? "text-emerald-500" : "text-amber-500")}>
+                                            <div className="text-right min-w-[80px] md:min-w-[100px]">
+                                                <div className="text-[8px] md:text-[9px] font-black text-slate-600 uppercase tracking-widest mb-0.5 md:mb-1">{t('efficiency')}</div>
+                                                <div className={clsx("font-black text-2xl md:text-4xl font-mono italic", isSuccess ? "text-emerald-500" : "text-amber-500")}>
                                                     {percentage}%
                                                 </div>
                                             </div>
-                                            <div className={clsx("text-slate-700 transition-transform duration-300", isExpanded && "rotate-180 text-accent")}>
+                                            <div className={clsx("text-slate-700 transition-transform duration-300 hidden sm:block", isExpanded && "rotate-180 text-accent")}>
                                                 <ChevronDown className="w-6 h-6" />
                                             </div>
                                         </div>
@@ -229,7 +229,7 @@ export const HistoryView: React.FC = () => {
                                                 exit={{ height: 0, opacity: 0 }}
                                                 className="bg-slate-950/50 border-t border-white/[0.04] overflow-hidden"
                                             >
-                                                <div className="p-10 space-y-6">
+                                                <div className="p-4 md:p-10 space-y-6">
                                                     <h4 className="text-[9px] font-black text-slate-600 uppercase tracking-[0.3em] flex items-center gap-3 mb-8">
                                                         <Zap className="w-3.5 h-3.5 text-accent" />
                                                         {t('trace_log')}
@@ -256,10 +256,10 @@ export const HistoryView: React.FC = () => {
                                                                 )}>
                                                                     <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 blur-[30px] rounded-full translate-x-12 -translate-y-12" />
                                                                     
-                                                                    <div className="flex items-start justify-between gap-6 mb-6">
-                                                                        <p className="font-bold text-slate-200 leading-tight text-lg">{locQ.question}</p>
+                                                                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4 md:mb-6 min-w-0">
+                                                                        <p className="font-bold text-slate-200 leading-tight text-sm md:text-lg min-w-0 break-words">{locQ.question}</p>
                                                                         <div className={clsx(
-                                                                            "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shrink-0 border", 
+                                                                            "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest shrink-0 border whitespace-nowrap self-end sm:self-auto", 
                                                                             isCorrectNode ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border-rose-500/20"
                                                                         )}>
                                                                             {isCorrectNode ? t('verified') : t('breached')}
@@ -325,26 +325,26 @@ export const HistoryView: React.FC = () => {
                                     <div key={qId} className="bg-secondary/10 border border-white/[0.04] rounded-3xl overflow-hidden group hover:border-accent/20 transition-all shadow-lg">
                                         <button 
                                             onClick={() => setExpandedQuestionId(isExpanded ? null : qId)}
-                                            className="w-full text-left p-8 flex items-center justify-between gap-8"
+                                            className="w-full text-left p-6 md:p-8 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 md:gap-8"
                                         >
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-3 mb-3">
-                                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent/60 bg-accent/5 px-2 py-0.5 rounded border border-accent/10">{CATEGORY_MAP[locQ.category || question.category] || (locQ.category || question.category)}</span>
+                                                <div className="flex items-center gap-3 mb-2 md:mb-3">
+                                                    <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-accent/60 bg-accent/5 px-2 py-0.5 rounded border border-accent/10">{CATEGORY_MAP[locQ.category || question.category] || (locQ.category || question.category)}</span>
                                                 </div>
-                                                <p className="text-xl font-black italic uppercase tracking-tighter text-slate-200 line-clamp-1 group-hover:text-white transition-colors">{locQ.question}</p>
+                                                <p className="text-lg md:text-xl font-black italic uppercase tracking-tighter text-slate-200 line-clamp-1 group-hover:text-white transition-colors">{locQ.question}</p>
                                             </div>
-                                            <div className="flex items-center gap-10">
-                                                <div className="text-right">
-                                                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">スキャン回数</div>
-                                                    <div className="font-mono text-2xl font-black text-white italic">{stat.total}</div>
+                                            <div className="flex items-center justify-between md:justify-end gap-6 md:gap-10 border-t border-white/[0.04] md:border-0 pt-4 md:pt-0">
+                                                <div className="text-left md:text-right">
+                                                    <div className="text-[8px] md:text-[9px] font-black text-slate-600 uppercase tracking-widest mb-0.5 md:mb-1">スキャン回数</div>
+                                                    <div className="font-mono text-xl md:text-2xl font-black text-white italic">{stat.total}</div>
                                                 </div>
-                                                <div className="text-right min-w-[90px]">
-                                                    <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1">{t('node_mastery')}</div>
-                                                    <div className={clsx("text-4xl font-black font-mono italic", accuracy >= 80 ? 'text-emerald-500' : accuracy >= 50 ? 'text-amber-500' : 'text-rose-500')}>
+                                                <div className="text-right min-w-[70px] md:min-w-[90px]">
+                                                    <div className="text-[8px] md:text-[9px] font-black text-slate-600 uppercase tracking-widest mb-0.5 md:mb-1">{t('node_mastery')}</div>
+                                                    <div className={clsx("text-2xl md:text-4xl font-black font-mono italic", accuracy >= 80 ? 'text-emerald-500' : accuracy >= 50 ? 'text-amber-500' : 'text-rose-500')}>
                                                         {accuracy}%
                                                     </div>
                                                 </div>
-                                                <div className={clsx("text-slate-700 transition-transform duration-300", isExpanded && "rotate-180 text-accent")}>
+                                                <div className={clsx("text-slate-700 transition-transform duration-300 hidden sm:block", isExpanded && "rotate-180 text-accent")}>
                                                     <ChevronDown className="w-6 h-6" />
                                                 </div>
                                             </div>
@@ -408,7 +408,7 @@ const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean, on
     <button 
         onClick={onClick}
         className={clsx(
-            "relative px-10 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3 active:scale-95 group",
+            "relative px-4 sm:px-10 py-2 sm:py-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 sm:gap-3 active:scale-95 group min-w-[120px] sm:min-w-0 justify-center",
             active ? "text-primary shadow-xl" : "text-slate-500 hover:text-slate-200"
         )}
     >

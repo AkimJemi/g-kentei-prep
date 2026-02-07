@@ -127,31 +127,47 @@ export default function App() {
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input field
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       const key = e.key.toLowerCase();
       
+      // B/ESC: Always goes to dashboard (unless in quiz, handled by Quiz component)
       if (key === 'b' || key === 'escape') {
-        if (isActive) {
-          // Quiz specific back is handled in Quiz.tsx usually
-        } else {
+        if (view !== 'quiz') {
           handleNavigate('dashboard');
         }
+        return;
       }
 
+      // ONLY allow navigation shortcuts globally
+      // View-specific shortcuts (E, Q, W, 1-4, etc) are handled by individual components
       switch (key) {
-        case 'h': handleNavigate('dashboard'); break;
-        case 's': handleNavigate('study'); break;
-        case 'l': handleNavigate('history'); break;
-        case 'm': handleNavigate('stats'); break;
-        case 'a': if (isAdmin) handleNavigate('admin'); break;
-        case 'f': handleNavigate('flashcards'); break;
+        case 'h': 
+          if (view !== 'quiz') handleNavigate('dashboard'); 
+          break;
+        case 's': 
+          if (view !== 'quiz') handleNavigate('study'); 
+          break;
+        case 'l': 
+          if (view !== 'quiz') handleNavigate('history'); 
+          break;
+        case 'm': 
+          if (view !== 'quiz') handleNavigate('stats'); 
+          break;
+        case 'a': 
+          if (isAdmin && view !== 'quiz') handleNavigate('admin'); 
+          break;
+        case 'f': 
+          if (view !== 'quiz') handleNavigate('flashcards'); 
+          break;
+        // All other keys are handled by view-specific components
       }
     };
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [view, isActive]);
+  }, [view, isAdmin]);
 
   // Language is now locked to 'ja'
 
@@ -262,16 +278,17 @@ export default function App() {
         </header>
 
         <main 
-          ref={scrollContainerRef as any}
-          className="flex-1 overflow-y-auto p-4 md:p-6 relative z-10 pb-24 md:pb-6"
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto overflow-x-hidden relative z-0 flex flex-col min-h-screen"
         >
           <AnimatePresence mode="wait">
-            <motion.div
+            <motion.div 
               key={view}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex-1 px-4 md:px-8 py-8 md:py-12"
             >
               {view === 'dashboard' && (
                 <Dashboard 
@@ -315,6 +332,32 @@ export default function App() {
             </AnimatePresence>
           </motion.div>
         </AnimatePresence>
+
+        <footer className="mt-auto px-2 md:px-6 py-6 md:py-8 border-t border-white/[0.04] bg-slate-900/50 backdrop-blur-sm relative z-10 mb-16 lg:mb-0">
+          <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6">
+              <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                <Shield className="w-3 h-3 text-accent" />
+                {t('encrypted_store')}
+              </div>
+              <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                <Radio className="w-3 h-3 text-emerald-500 animate-pulse" />
+                {t('syllabus_version')}
+              </div>
+            </div>
+            <div className="flex items-center gap-6 self-center md:self-auto">
+               <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-white transition-colors">
+                  <Github className="w-4 h-4" />
+               </a>
+               <p 
+                 onClick={() => setView('admin')}
+                 className="text-slate-700 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] cursor-pointer hover:text-red-500 transition-colors"
+               >
+                 &copy; {new Date().getFullYear()} {t('copyright')}
+               </p>
+            </div>
+          </div>
+        </footer>
         </main>
 
         {/* Mobile Bottom Navigation */}
@@ -346,31 +389,6 @@ export default function App() {
           ))}
         </nav>
 
-        <footer className="hidden md:block px-6 py-6 border-t border-white/[0.04] bg-slate-900/30 relative z-10">
-          <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                <Shield className="w-3 h-3 text-accent" />
-                {t('encrypted_store')}
-              </div>
-              <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                <Radio className="w-3 h-3 text-emerald-500 animate-pulse" />
-                {t('syllabus_version')}
-              </div>
-            </div>
-            <div className="flex items-center gap-6">
-               <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-white transition-colors">
-                  <Github className="w-4 h-4" />
-               </a>
-               <p 
-                 onClick={() => setView('admin')}
-                 className="text-slate-700 text-[10px] font-black uppercase tracking-[0.3em] cursor-pointer hover:text-red-500 transition-colors"
-               >
-                 &copy; {new Date().getFullYear()} {t('copyright')}
-               </p>
-            </div>
-          </div>
-        </footer>
       </div>
     </Layout>
   );

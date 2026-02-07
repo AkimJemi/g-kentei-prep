@@ -7,18 +7,17 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-primary text-slate-200 flex flex-col font-sans selection:bg-accent selection:text-primary">
-      {/* Main Content */}
-      <main className="flex-grow container max-w-5xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-primary text-slate-200 flex flex-col font-sans selection:bg-accent selection:text-primary relative overflow-hidden">
+      {/* 
+          Main shell. 
+          The background and scrolling are handled by components inside 
+          to allow for specific layouts per view (like fixed headers).
+      */}
+      <div className="flex-grow flex flex-col">
         {children}
-      </main>
+      </div>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800 bg-slate-900/50 py-8 mt-auto">
-        <div className="max-w-5xl mx-auto px-4 text-center text-slate-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} G-Kentei Prep. Designed by Akim.</p>
-        </div>
-      </footer>
+      {/* Footer is moved to its own component or handled inside App.tsx to avoid fixed layout issues */}
     </div>
   );
 };

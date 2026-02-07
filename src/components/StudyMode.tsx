@@ -59,7 +59,7 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
   };
 
   React.useEffect(() => {
-    const shortcuts = ['1', '2', '3', '4', 'q', 'w', 'e', 'r', 'a', 's'];
+    const shortcuts = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
     
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -129,7 +129,7 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {categories.map((cat, idx) => {
           const CategoryIcon = ICON_MAP[cat.icon] || HelpCircle;
-          const shortcuts = ['1', '2', '3', '4', 'Q', 'W', 'E', 'R', 'A', 'S'];
+          const shortcuts = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
           const shortcut = shortcuts[idx] || (idx + 1).toString();
 
           return (

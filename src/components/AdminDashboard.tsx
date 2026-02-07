@@ -408,7 +408,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
         
         {/* Tab Navigation */}
-        <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-800 flex-wrap">
+        <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-800 overflow-x-auto no-scrollbar whitespace-nowrap">
             {[
                 { id: 'users', label: 'ユーザー管理', icon: Users },
                 { id: 'messages', label: '受信トレイ', icon: Activity },
@@ -422,11 +422,11 @@ export const AdminDashboard: React.FC = () => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
                     className={clsx(
-                        "px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-all",
+                        "px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-all shrink-0",
                         activeTab === tab.id ? "bg-slate-800 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
                     )}
                 >
-                    <tab.icon className="w-4 h-4" />
+                    <tab.icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     {tab.label}
                     {tab.id === 'messages' && adminStats.unreadMessages > 0 && (
                         <span className="bg-blue-500 text-white text-[9px] px-1.5 rounded-full">{adminStats.unreadMessages}</span>
@@ -440,7 +440,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Global Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <MetricCard icon={Users} label="総ユーザー数" value={adminStats.totalUsers.toString()} color="text-blue-400" />
         <MetricCard icon={Activity} label="総学習回数" value={stats.totalAttempts.toString()} color="text-purple-400" />
         <MetricCard icon={TrendingUp} label="平均正答率" value={`${stats.avgAccuracy}%`} color="text-emerald-400" />
@@ -451,7 +451,7 @@ export const AdminDashboard: React.FC = () => {
       <div className="bg-secondary/10 border border-white/[0.04] rounded-3xl overflow-hidden shadow-2xl min-h-[400px]">
           
           {/* Common Toolbar */}
-          <div className="px-8 py-4 border-b border-white/[0.04] bg-slate-900/20 backdrop-blur-md flex flex-col gap-4 sticky top-0 z-10">
+          <div className="px-4 md:px-8 py-3 md:py-4 border-b border-white/[0.04] bg-slate-900/20 backdrop-blur-md flex flex-col gap-4 sticky top-0 z-10">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-center gap-3 flex-1 w-full md:max-w-xl">
                        <div className="relative flex-1 group">
@@ -755,23 +755,23 @@ export const AdminDashboard: React.FC = () => {
 
           {/* SUBMISSIONS TAB */}
           {activeTab === 'submissions' && (
-            <div className="p-8 space-y-6">
-                <h2 className="text-xl font-bold text-white mb-6">承認待ちの問題 ({totalFilteredItems})</h2>
+            <div className="p-4 md:p-8 space-y-4 md:space-y-6">
+                <h2 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-6">承認待ちの問題 ({totalFilteredItems})</h2>
                 {submissions.length === 0 ? (
                     <p className="text-slate-500">承認待ちの問題はありません。</p>
                 ) : (
                     <div className="grid gap-6">
                         {submissions.map((sub) => {
-                            const options = JSON.parse(sub.options || '[]');
+                            const options = Array.isArray(sub.options) ? sub.options : JSON.parse(sub.options || '[]');
                             return (
-                                <div key={sub.id} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all">
+                                <div key={sub.id} className="bg-slate-900/50 p-4 md:p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-all">
                                     <div className="flex flex-col md:flex-row gap-6">
                                         <div className="flex-1 space-y-4">
                                             <div className="flex items-center gap-3">
                                                 <span className="bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded text-xs font-bold border border-emerald-500/20">{dynamicCategoryMap[sub.category] || sub.category}</span>
                                                 <span className="text-xs text-slate-600 font-mono">{new Date(sub.createdAt).toLocaleDateString('ja-JP')}</span>
                                             </div>
-                                            <div className="font-bold text-white text-lg">{sub.question}</div>
+                                            <div className="font-bold text-white text-base md:text-lg">{sub.question}</div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                                 {options.map((opt: string, i: number) => (
                                                     <div key={i} className={clsx(
@@ -790,7 +790,7 @@ export const AdminDashboard: React.FC = () => {
                                                 {sub.explanation}
                                             </div>
                                         </div>
-                                        <div className="flex md:flex-col gap-2 justify-center border-l border-slate-800 pl-6 border-t md:border-t-0 pt-4 md:pt-0">
+                                        <div className="flex md:flex-col gap-2 justify-center border-t md:border-t-0 md:border-l border-slate-800 pt-4 md:pt-0 md:pl-6">
                                             <button 
                                                 onClick={() => handleApproveSubmission(sub.id)}
                                                 className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold rounded-lg text-xs transition-colors"
@@ -1194,9 +1194,9 @@ export const AdminDashboard: React.FC = () => {
                     <TrendingUp className="w-6 h-6 text-emerald-400" />
                     <h3 className="text-lg font-bold text-white">システム成長推移</h3>
                 </div>
-                <div className="flex-1 flex items-center justify-center p-12">
+                <div className="flex-1 flex items-center justify-center p-4 md:p-12">
                      <div className="relative w-full h-full border-b border-l border-white/5">
-                        <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <defs>
                                 <linearGradient id="growthGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                                     <stop offset="0%" stopColor="rgb(16, 185, 129)" stopOpacity="0.2" />
@@ -1210,7 +1210,7 @@ export const AdminDashboard: React.FC = () => {
                                 d="M 0,80 C 20,70 40,90 60,60 S 80,40 100,20" 
                                 fill="none" 
                                 stroke="currentColor" 
-                                strokeWidth="0.5"
+                                strokeWidth="2"
                                 className="text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                                 vectorEffect="non-scaling-stroke"
                             />
@@ -1326,7 +1326,7 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       {/* Notifications App Area */}
-      <div className="fixed bottom-8 right-8 z-[200] flex flex-col gap-2 pointer-events-none">
+      <div className="fixed bottom-24 md:bottom-8 right-4 md:right-8 z-[200] flex flex-col gap-2 pointer-events-none">
         {notifications.map(n => (
             <motion.div 
                 key={n.id}

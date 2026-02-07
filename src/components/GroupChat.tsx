@@ -122,7 +122,7 @@ export const GroupChat: React.FC = () => {
     };
 
     return (
-        <div className="bg-slate-950/90 border border-slate-800 rounded-3xl overflow-hidden flex flex-col h-[600px] shadow-2xl backdrop-blur-xl">
+        <div className="bg-slate-950/90 border border-slate-800 rounded-3xl overflow-hidden flex flex-col h-[500px] md:h-[600px] shadow-2xl backdrop-blur-xl">
             <div className="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur flex items-center gap-3">
                 <div className="p-2 bg-accent/10 rounded-lg">
                     <MessageCircle className="w-5 h-5 text-accent" />

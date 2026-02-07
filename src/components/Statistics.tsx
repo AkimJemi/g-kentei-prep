@@ -135,11 +135,11 @@ export const Statistics: React.FC = () => {
                         <span className="text-[8px] font-black text-slate-800">[B / Esc]</span>
                     </button>
                     <div className="space-y-2">
-                        <h1 className="text-4xl font-black italic tracking-tighter uppercase flex items-center gap-4">
-                            <Zap className="w-8 h-8 text-accent animate-pulse" />
+                        <h1 className="text-2xl md:text-4xl font-black italic tracking-tighter uppercase flex items-center gap-3 md:gap-4">
+                            <Zap className="w-6 h-6 md:w-8 md:h-8 text-accent animate-pulse" />
                             {t('system_analytics')}
                         </h1>
-                        <p className="text-slate-500 font-medium tracking-tight">Real-time performance metrics and cognitive pattern analysis.</p>
+                        <p className="text-xs md:text-base text-slate-500 font-medium tracking-tight">Real-time performance metrics and cognitive pattern analysis.</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3 bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-xl">
@@ -180,7 +180,7 @@ export const Statistics: React.FC = () => {
                 {/* Accuracy by Category */}
                 <motion.div variants={itemVariants} className="bg-secondary/10 border border-white/[0.04] rounded-3xl p-8 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-[40px] rounded-full translate-x-10 -translate-y-10" />
-                    <h3 className="text-xl font-black italic uppercase tracking-tighter mb-8 flex items-center gap-3">
+                    <h3 className="text-lg md:text-xl font-black italic uppercase tracking-tighter mb-8 flex items-center gap-3">
                         <Brain className="w-5 h-5 text-indigo-400" />
                         {t('sector_proficiency')}
                     </h3>
@@ -210,7 +210,7 @@ export const Statistics: React.FC = () => {
                 {/* Mistake Distribution */}
                 <motion.div variants={itemVariants} className="bg-secondary/10 border border-white/[0.04] rounded-3xl p-8 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 blur-[40px] rounded-full translate-x-10 -translate-y-10" />
-                    <h3 className="text-xl font-black italic uppercase tracking-tighter mb-8 flex items-center gap-3 text-rose-400">
+                    <h3 className="text-lg md:text-xl font-black italic uppercase tracking-tighter mb-8 flex items-center gap-3 text-rose-400">
                         <PieChart className="w-5 h-5" />
                         {t('network_fragility')}
                     </h3>
@@ -221,13 +221,13 @@ export const Statistics: React.FC = () => {
                             const ratio = totalMistakes > 0 ? Math.round((data.mistakes / totalMistakes) * 100) : 0;
                             if (data.mistakes === 0) return null;
                             return (
-                                <div key={cat} className="flex items-center justify-between group">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
-                                        <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors">{cat}</span>
+                                <div key={cat} className="flex flex-col sm:flex-row items-start sm:items-center justify-between group gap-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)] shrink-0" />
+                                        <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors truncate max-w-[150px] sm:max-w-none">{cat}</span>
                                     </div>
-                                    <div className="flex items-center gap-6">
-                                        <span className="text-[10px] font-mono text-slate-600 italic">{data.mistakes} pts</span>
+                                    <div className="flex items-center gap-4 sm:gap-6 self-end sm:self-auto">
+                                        <span className="text-[10px] font-mono text-slate-600 italic whitespace-nowrap">{data.mistakes} pts</span>
                                         <span className="text-sm font-black text-rose-500 w-10 text-right">{ratio}%</span>
                                     </div>
                                 </div>
@@ -268,7 +268,7 @@ export const Statistics: React.FC = () => {
                             <div key={qId} className="bg-secondary/10 border border-white/[0.04] rounded-2xl overflow-hidden group hover:border-accent/20 transition-all shadow-lg">
                                 <button 
                                     onClick={() => setSelectedQuestion(isExpanded ? null : qId)}
-                                    className="w-full text-left p-6 flex items-center justify-between gap-6"
+                                    className="w-full text-left p-4 md:p-6 flex items-center justify-between gap-4 md:gap-6"
                                 >
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-3 mb-2">
@@ -330,13 +330,13 @@ export const Statistics: React.FC = () => {
 };
 
 const StatCard: React.FC<{ icon: any, color: string, bg: string, label: string, value: string, sublabel: string }> = ({ icon: Icon, color, bg, label, value, sublabel }) => (
-    <div className="bg-secondary/10 border border-white/[0.04] p-8 rounded-3xl hover:bg-secondary/20 transition-all group relative overflow-hidden">
+    <div className="bg-secondary/10 border border-white/[0.04] p-5 md:p-8 rounded-3xl hover:bg-secondary/20 transition-all group relative overflow-hidden">
         <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 blur-[30px] rounded-full translate-x-8 -translate-y-8" />
-        <div className={`w-12 h-12 rounded-2xl ${bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-lg`}>
-            <Icon className={`w-6 h-6 ${color}`} />
+        <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl ${bg} flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition-transform duration-500 shadow-lg`}>
+            <Icon className={`w-5 h-5 md:w-6 md:h-6 ${color}`} />
         </div>
-        <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">{label}</div>
-        <div className="text-3xl font-black italic uppercase tracking-tight text-white mb-1">{value}</div>
-        <div className="text-xs text-slate-600 font-medium italic">{sublabel}</div>
+        <div className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">{label}</div>
+        <div className="text-2xl md:text-3xl font-black italic uppercase tracking-tight text-white mb-1">{value}</div>
+        <div className="text-[10px] md:text-xs text-slate-600 font-medium italic">{sublabel}</div>
     </div>
 );

@@ -1,26 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlusCircle, CheckCircle, AlertCircle, Save, Eye, Layout, Send, RefreshCw, ChevronLeft } from 'lucide-react';
 import { useLanguageStore } from '../store/useLanguageStore';
 import clsx from 'clsx';
 
-const CATEGORIES = [
-    { id: 'cat_fundamentals', realId: 'AI Fundamentals' },
-    { id: 'cat_trends', realId: 'AI Trends' },
-    { id: 'cat_ml', realId: 'Machine Learning' },
-    { id: 'cat_dl_basics', realId: 'Deep Learning Basics' },
-    { id: 'cat_dl_tech', realId: 'Deep Learning Tech' },
-    { id: 'cat_apps', realId: 'AI Applications' },
-    { id: 'cat_social', realId: 'Social Implementation' },
-    { id: 'cat_math', realId: 'Math & Statistics' },
-    { id: 'cat_law', realId: 'Law & Contracts' },
-    { id: 'cat_ethics', realId: 'Ethics & Governance' }
-];
+interface Category {
+    id: string;
+    title: string;
+    icon: string;
+    color: string;
+    bg: string;
+    description: string;
+    displayOrder: number;
+}
 
 export const SubmitQuestionView: React.FC = () => {
     const { t } = useLanguageStore();
+    const [categories, setCategories] = useState<Category[]>([]);
     const [formData, setFormData] = useState({
-        category: CATEGORIES[0].realId,
+        category: '',
         question: '',
         options: ['', '', '', ''],
         correctAnswer: 0,
@@ -28,6 +26,22 @@ export const SubmitQuestionView: React.FC = () => {
     });
     const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
     const [showPreview, setShowPreview] = useState(false);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await fetch('/api/categories');
+                const data = await res.json();
+                setCategories(data);
+                if (data.length > 0) {
+                    setFormData(prev => ({ ...prev, category: data[0].id }));
+                }
+            } catch (error) {
+                console.error('Failed to fetch categories:', error);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     const handleOptionChange = (index: number, value: string) => {
         const newOptions = [...formData.options];
@@ -80,7 +94,7 @@ export const SubmitQuestionView: React.FC = () => {
             <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="max-w-2xl mx-auto text-center space-y-8 py-20"
+                className="max-w-2xl mx-auto text-center space-y-8 py-10 md:py-20 px-4"
             >
                 <div className="relative inline-block">
                     <div className="absolute inset-0 bg-emerald-500/20 blur-[60px] rounded-full" />
@@ -89,8 +103,8 @@ export const SubmitQuestionView: React.FC = () => {
                     </div>
                 </div>
                 <div className="space-y-4">
-                    <h2 className="text-4xl font-black italic tracking-tighter uppercase text-white">
-                        Submission <span className="text-emerald-400">Accepted</span>
+                    <h2 className="text-3xl md:text-4xl font-black italic tracking-tighter uppercase text-white">
+                        投稿完了 <span className="text-emerald-400">承認待ち</span>
                     </h2>
                     <p className="text-slate-400 max-w-md mx-auto leading-relaxed">
                         あなたの問題がニューラル・ネットワークにアップロードされました。管理者の承認後、データベースに統合されます。
@@ -180,8 +194,8 @@ export const SubmitQuestionView: React.FC = () => {
                                     onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                                     className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl px-6 py-4 text-white font-bold appearance-none focus:ring-2 focus:ring-accent/50 focus:border-transparent outline-none transition-all cursor-pointer group"
                                 >
-                                    {CATEGORIES.map(c => (
-                                        <option key={c.id} value={c.realId} className="bg-slate-900">{t(c.id)}</option>
+                                    {categories.map(c => (
+                                        <option key={c.id} value={c.id} className="bg-slate-900">{c.title}</option>
                                     ))}
                                 </select>
                             </div>
@@ -299,7 +313,7 @@ export const SubmitQuestionView: React.FC = () => {
                         <div className="mt-12 space-y-8 flex-1">
                             <div className="flex items-center gap-3">
                                 <span className="bg-accent/10 text-accent px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-accent/20">
-                                   {CATEGORIES.find(c => c.realId === formData.category)?.realId || 'ID-ALPHA'}
+                                   {categories.find(c => c.id === formData.category)?.title || 'カテゴリ未選択'}
                                 </span>
                                 <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Live Node Preview</span>
                             </div>
