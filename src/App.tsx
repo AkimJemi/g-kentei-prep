@@ -98,6 +98,13 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Disable browser automatic scroll restoration to prevent jumps during login/navigation
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  useEffect(() => {
     const scrollToTop = () => {
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = 0;
@@ -105,11 +112,18 @@ export default function App() {
       window.scrollTo(0, 0);
     };
 
+    // Immediate
     scrollToTop();
-    // Re-trigger after short delay to ensure DOM is settled
-    const timer = setTimeout(scrollToTop, 100);
-    return () => clearTimeout(timer);
-  }, [view, isBooting]);
+    
+    // Multiple attempts to fight off late-rendering shifts or browser behavior
+    const timers = [
+      setTimeout(scrollToTop, 10),
+      setTimeout(scrollToTop, 100),
+      setTimeout(scrollToTop, 500)
+    ];
+    
+    return () => timers.forEach(t => clearTimeout(t));
+  }, [view, isBooting, isAuthenticated]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -242,7 +256,7 @@ export default function App() {
 
         <main 
           ref={scrollContainerRef as any}
-          className="flex-1 overflow-y-auto p-6 scroll-smooth relative z-10"
+          className="flex-1 overflow-y-auto p-6 relative z-10"
         >
           <AnimatePresence mode="wait">
             <motion.div
