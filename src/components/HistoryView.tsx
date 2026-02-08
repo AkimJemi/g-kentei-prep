@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { db, type QuizAttempt } from '../db/db';
-import { CATEGORY_MAP } from '../constants/categories';
+import { normalizeKeys } from '../utils/normalize';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useAuthStore } from '../store/useAuthStore';
 import type { Question } from '../types';
@@ -17,11 +17,24 @@ export const HistoryView: React.FC = () => {
     const [expandedQuestionId, setExpandedQuestionId] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'sessions' | 'questions'>('sessions');
     const [allQuestions, setAllQuestions] = useState<Question[]>([]);
+    const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
 
     useEffect(() => {
         fetch('/api/questions')
             .then(res => res.json())
-            .then(setAllQuestions)
+            .then(data => setAllQuestions(normalizeKeys(data)))
+            .catch(console.error);
+
+        fetch('/api/categories')
+            .then(res => res.json())
+            .then(data => {
+                const normalized = normalizeKeys(data);
+                const mapping: Record<string, string> = {};
+                normalized.forEach((cat: any) => {
+                    mapping[cat.id] = cat.title;
+                });
+                setCategoryMap(mapping);
+            })
             .catch(console.error);
     }, []);
 
@@ -113,9 +126,9 @@ export const HistoryView: React.FC = () => {
             initial="hidden"
             animate="visible"
             variants={containerVariants}
-            className="max-w-4xl mx-auto space-y-12 pb-20"
+            className="max-w-4xl mx-auto px-4 md:px-0 space-y-8 md:space-y-12 pb-20"
         >
-             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/[0.04] pb-12">
+             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/[0.04] pb-8 md:pb-12">
                 <div className="space-y-4">
                     <button 
                         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'b' }))}
@@ -123,47 +136,42 @@ export const HistoryView: React.FC = () => {
                     >
                         <ChevronLeft className="w-4 h-4" />
                         <span className="text-[10px] font-black uppercase tracking-widest">{t('abort_scan')}</span>
-                        <span className="text-[8px] font-black text-slate-800">[B / Esc]</span>
+                        <span className="hidden xl:inline text-[8px] font-black text-slate-800">[B / Esc]</span>
                     </button>
                     <div className="space-y-2">
-                        <h1 className="text-2xl md:text-4xl font-black italic tracking-tighter uppercase flex items-center gap-3 md:gap-4">
-                            <History className="w-6 h-6 md:w-8 md:h-8 text-accent" />
+                        <h1 className="text-xl md:text-4xl font-black italic tracking-tighter uppercase flex items-center gap-3 md:gap-4 leading-none">
+                            <History className="w-5 h-5 md:w-8 md:h-8 text-accent shrink-0" />
                             {t('neural_logs')}
                         </h1>
-                        <p className="text-xs md:text-base text-slate-500 font-medium tracking-tight">過去の評価とノード習熟度データの永続的なストレージ。</p>
+                        <p className="text-[11px] md:text-base text-slate-500 font-medium tracking-tight">過去の評価とノード習熟度データの永続的なストレージ。</p>
                     </div>
                 </div>
-                
-                <div className="relative group">
-                    <button 
-                        onClick={handleClearHistory}
-                        className="px-6 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-rose-500 hover:text-white hover:bg-rose-500 transition-all border border-rose-500/30 rounded-lg flex items-center gap-2"
-                    >
-                        {t('wipe_archive')}
-                    </button>
-                    <span className="absolute -top-1 -right-1 text-[8px] font-black text-rose-500/60 bg-primary/50 px-1 rounded-sm border border-rose-500/20 transition-colors group-hover:text-rose-400 group-hover:border-rose-400/40">[W]</span>
+                <div className="flex items-center gap-4">
+                    <div className="relative group">
+                        <button 
+                            onClick={handleClearHistory}
+                            className="px-6 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-rose-500 hover:text-white hover:bg-rose-500 transition-all border border-rose-500/30 rounded-lg flex items-center gap-2"
+                        >
+                            {t('wipe_archive')}
+                        </button>
+                        <span className="hidden xl:inline absolute -top-1 -right-1 text-[8px] font-black text-rose-500/60 bg-primary/50 px-1 rounded-sm border border-rose-500/20 transition-colors group-hover:text-rose-400 group-hover:border-rose-400/40">[W]</span>
+                    </div>
                 </div>
              </div>
 
-             <div className="flex bg-slate-900 border border-slate-800 p-1.5 rounded-2xl self-start">
-                <div className="relative group">
-                    <TabButton 
-                        active={activeTab === 'sessions'} 
-                        onClick={() => setActiveTab('sessions')} 
-                        icon={Radio} 
-                        label={t('session_logs')} 
-                    />
-                    <span className="absolute -top-1 -right-1 text-[8px] font-black text-accent/60 bg-primary/50 px-1 rounded-sm border border-accent/20 transition-colors group-hover:text-accent group-hover:border-accent/40">[S]</span>
-                </div>
-                <div className="relative group">
-                    <TabButton 
-                        active={activeTab === 'questions'} 
-                        onClick={() => setActiveTab('questions')} 
-                        icon={Database} 
-                        label={t('node_mastery')} 
-                    />
-                    <span className="absolute -top-1 -right-1 text-[8px] font-black text-accent/60 bg-primary/50 px-1 rounded-sm border border-accent/20 transition-colors group-hover:text-accent group-hover:border-accent/40">[N]</span>
-                </div>
+             <div className="flex w-full sm:w-auto bg-slate-900 border border-slate-800 p-1 rounded-2xl">
+                <TabButton 
+                    active={activeTab === 'sessions'} 
+                    onClick={() => setActiveTab('sessions')} 
+                    icon={Radio} 
+                    label={t('session_logs')} 
+                />
+                <TabButton 
+                    active={activeTab === 'questions'} 
+                    onClick={() => setActiveTab('questions')} 
+                    icon={Database} 
+                    label={t('node_mastery')} 
+                />
              </div>
 
              <AnimatePresence mode="wait">
@@ -197,7 +205,7 @@ export const HistoryView: React.FC = () => {
                                                     <span>{attempt.date.toLocaleString()}</span>
                                                 </div>
                                                 <div className="text-lg md:text-2xl font-black italic uppercase tracking-tighter text-white group-hover:text-accent transition-colors truncate">
-                                                    {attempt.category === 'All' ? t('system_evolution') : (CATEGORY_MAP[attempt.category] || attempt.category)}
+                                                    {attempt.category === 'All' ? t('system_evolution') : (categoryMap[attempt.category] || attempt.category)}
                                                 </div>
                                             </div>
                                         </div>
@@ -329,7 +337,7 @@ export const HistoryView: React.FC = () => {
                                         >
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-3 mb-2 md:mb-3">
-                                                    <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-accent/60 bg-accent/5 px-2 py-0.5 rounded border border-accent/10">{CATEGORY_MAP[locQ.category || question.category] || (locQ.category || question.category)}</span>
+                                                    <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em] text-accent/60 bg-accent/5 px-2 py-0.5 rounded border border-accent/10">{categoryMap[locQ.category || question.category] || (locQ.category || question.category)}</span>
                                                 </div>
                                                 <p className="text-lg md:text-xl font-black italic uppercase tracking-tighter text-slate-200 line-clamp-1 group-hover:text-white transition-colors">{locQ.question}</p>
                                             </div>
@@ -386,7 +394,7 @@ export const HistoryView: React.FC = () => {
                                                                 <Database className="w-12 h-12" />
                                                             </div>
                                                             <p className="text-xs text-slate-400 leading-relaxed font-medium italic">
-                                                                <span className="text-accent font-black not-italic mr-3 font-mono">[{t('root_analysis')}]</span>
+                                                                <span className="text-accent font-black not-italic mr-3 font-mono">{t('root_analysis')}</span>
                                                                 {locQ.explanation}
                                                             </p>
                                                         </div>
@@ -408,7 +416,7 @@ const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean, on
     <button 
         onClick={onClick}
         className={clsx(
-            "relative px-4 sm:px-10 py-2 sm:py-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 sm:gap-3 active:scale-95 group min-w-[120px] sm:min-w-0 justify-center",
+            "relative flex-1 sm:flex-none px-3 sm:px-8 py-2.5 sm:py-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all flex items-center gap-2 sm:gap-3 active:scale-95 group min-w-0 justify-center",
             active ? "text-primary shadow-xl" : "text-slate-500 hover:text-slate-200"
         )}
     >

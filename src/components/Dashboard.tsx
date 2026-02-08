@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Play, BookOpen, TrendingUp, Zap, Target, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Play, BookOpen, TrendingUp, Zap, Target, AlertTriangle, ArrowRight, Cpu } from 'lucide-react';
 import { useQuizStore } from '../store/useQuizStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -7,6 +7,7 @@ import { db } from '../db/db';
 import { normalizeKeys } from '../utils/normalize';
 import { GroupChat } from './GroupChat';
 import { motion } from 'framer-motion';
+import { useDashboardStore } from '../store/useDashboardStore';
 
 interface DashboardProps {
   onStartQuiz: () => void;
@@ -19,62 +20,79 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
   const { startWeakPointQuiz } = useQuizStore();
   const { t } = useLanguageStore();
   const { currentUser } = useAuthStore();
-  const [stats, setStats] = useState({
-      attempts: 0,
-      avgAccuracy: 0,
-      weakQuestionIds: [] as number[],
-      rank: 'Beginner',
-      activeSessions: [] as any[],
-      totalQuestions: 0
-  });
+  const { stats, setStats, initialDataLoaded, setInitialDataLoaded } = useDashboardStore();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(!initialDataLoaded);
 
   useEffect(() => {
-    // Fetch total question count
-    fetch('/api/questions').then(res => res.json()).then((data: any[]) => {
-        const normalized = normalizeKeys(data);
-        setStats(prev => ({ ...prev, totalQuestions: normalized.length }));
-    }).catch(console.error);
+    const fetchTotalQuestions = async () => {
+        try {
+            const res = await fetch('/api/questions');
+            const data = await res.json();
+            const normalized = normalizeKeys(data);
+            setStats({ totalQuestions: normalized.length });
+        } catch (error) {
+            console.error(error);
+        }
+    };
+    fetchTotalQuestions();
   }, []);
 
   useEffect(() => {
-      const userId = currentUser?.userId || (currentUser as any)?.id;
-      if (!userId) return;
+    const loadStats = async () => {
+        const userId = currentUser?.userId || (currentUser as any)?.id;
+        if (!userId) {
+            setIsInitializing(false);
+            return;
+        }
 
-      db.attempts.where('userId').equals(userId).toArray().then((data: any[]) => {
-          if (data.length === 0) return;
-          
-          let totalScore = 0;
-          let totalQuestions = 0;
-          const errorMap: { [id: number]: number } = {};
+        if (initialDataLoaded) setIsUpdating(true);
 
-          data.forEach((a: any) => {
-              totalScore += a.score;
-              totalQuestions += a.totalQuestions;
-              a.wrongQuestionIds?.forEach((id: number) => {
-                  errorMap[id] = (errorMap[id] || 0) + 1;
-              });
-          });
+        try {
+            const [attemptsData, sessions] = await Promise.all([
+                db.attempts.where('userId').equals(userId).toArray(),
+                db.sessions.where('userId').equals(userId).toArray()
+            ]);
 
-          const weakIds = Object.entries(errorMap)
-              .filter(([_, count]) => count >= 1)
-              .sort((a, b) => b[1] - a[1])
-              .map(([id]) => Number(id))
-              .slice(0, 10);
+            let totalScore = 0;
+            let totalQuestionsCount = 0;
+            const errorMap: { [id: number]: number } = {};
 
-          const acc = totalQuestions > 0 ? Math.round((totalScore / totalQuestions) * 100) : 0;
-          
-          setStats(prev => ({
-              ...prev,
-              attempts: data.length,
-              avgAccuracy: acc,
-              weakQuestionIds: weakIds,
-              rank: acc > 90 ? 'エキスパート' : acc > 70 ? '上級' : acc > 40 ? '初級' : '入門'
-          }));
-      });
+            attemptsData.forEach((a: any) => {
+                totalScore += a.score;
+                totalQuestionsCount += a.totalQuestions;
+                a.wrongQuestionIds?.forEach((id: number) => {
+                    errorMap[id] = (errorMap[id] || 0) + 1;
+                });
+            });
 
-      db.sessions.where('userId').equals(userId).toArray().then((sessions: any[]) => {
-          setStats(prev => ({ ...prev, activeSessions: sessions }));
-      });
+            const weakIds = Object.entries(errorMap)
+                .filter(([_, count]) => count >= 1)
+                .sort((a, b) => b[1] - a[1])
+                .map(([id]) => Number(id))
+                .slice(0, 10);
+
+            const acc = totalQuestionsCount > 0 ? Math.round((totalScore / totalQuestionsCount) * 100) : 0;
+            
+            setStats({
+                attempts: attemptsData.length,
+                avgAccuracy: acc,
+                weakQuestionIds: weakIds,
+                activeSessions: sessions,
+                rank: acc > 90 ? 'エキスパート' : acc > 70 ? '上級' : acc > 40 ? '初級' : '入門'
+            });
+
+            setInitialDataLoaded(true);
+            setIsInitializing(false);
+            setIsUpdating(false);
+        } catch (err) {
+            console.error(err);
+            setIsInitializing(false);
+            setIsUpdating(false);
+        }
+    };
+    
+    loadStats();
   }, [currentUser]);
 
   const handleWeakPointReview = async () => {
@@ -116,15 +134,43 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
     visible: { opacity: 1, y: 0 }
   };
 
+  if (isInitializing) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 md:py-32 space-y-8 animate-fade-in">
+        <div className="relative">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+            className="w-20 h-20 md:w-24 md:h-24 rounded-full border-t-2 border-r-2 border-accent/20"
+          />
+          <Cpu className="absolute inset-0 m-auto w-8 h-8 md:w-10 md:h-10 text-accent animate-pulse" />
+        </div>
+        <div className="space-y-2 text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">{t('initialize_sequence')}</p>
+            <div className="flex gap-1 justify-center">
+                {[0, 1, 2].map(i => (
+                    <motion.div 
+                        key={i}
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                        className="w-1 h-1 bg-accent rounded-full"
+                    />
+                ))}
+            </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div 
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="space-y-12 pb-20"
+      className="space-y-8 md:space-y-12 px-4 md:px-0 pb-20"
     >
       {/* Hero Section */}
-      <div className="max-w-6xl mx-auto text-center space-y-6 py-12 relative">
+      <div className="max-w-6xl mx-auto text-center space-y-6 py-8 md:py-12 relative">
         {/* Decorative background glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/10 blur-[120px] rounded-full -z-10" />
         
@@ -133,34 +179,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
             <span className="block md:inline text-transparent bg-clip-text bg-gradient-to-r from-accent via-indigo-400 to-purple-500 animate-gradient"> G-KENTEI</span>
         </motion.h1>
         
-        <motion.p variants={itemVariants} className="text-sm md:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium px-4">
+        <motion.p variants={itemVariants} className="text-xs md:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium px-2 md:px-4">
             {t('jdla_sub')}
-          <span className="block text-slate-500 text-sm mt-2 uppercase tracking-[0.3em] font-black">{t('neural_status')} // {t('optimized').toUpperCase()}</span>
+          <span className="block text-slate-500 text-[9px] md:text-sm mt-2 uppercase tracking-[0.3em] font-black">
+              {t('neural_status')} // {isUpdating ? 'SYNCING...' : t('optimized').toUpperCase()}
+          </span>
         </motion.p>
 
-        <motion.div variants={itemVariants} className="pt-8 flex flex-wrap justify-center gap-4">
+        <motion.div variants={itemVariants} className="pt-4 md:pt-8 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
           <button 
             onClick={onStartQuiz}
-            className="group relative px-6 py-4 md:px-10 md:py-5 bg-accent hover:bg-sky-400 text-primary font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(56,189,248,0.3)] transition-all duration-300 flex items-center space-x-3 active:scale-95 text-sm md:text-base"
+            className="group relative px-6 py-4 md:px-10 md:py-5 bg-accent hover:bg-sky-400 text-primary font-black uppercase tracking-widest rounded-2xl shadow-[0_0_30px_rgba(56,189,248,0.3)] transition-all duration-300 flex items-center justify-center space-x-3 active:scale-95 text-xs md:text-base"
           >
-            <Play className="w-5 h-5 fill-current" />
+            <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />
             <span>{t('engage_practice')}</span>
-            <span className="hidden md:inline text-[10px] font-black text-primary/60 ml-2 group-hover:text-primary transition-colors">[E]</span>
+            <span className="hidden xl:inline text-[10px] font-black text-primary/60 ml-2 group-hover:text-primary transition-colors">[E]</span>
           </button>
           
           <button 
             onClick={onViewStats}
-            className="group px-6 py-4 md:px-10 md:py-5 bg-slate-900 border border-slate-800 hover:border-slate-700 text-white font-black uppercase tracking-widest rounded-2xl transition-all duration-300 flex items-center space-x-3 active:scale-95 shadow-xl text-sm md:text-base"
+            className="group px-6 py-4 md:px-10 md:py-5 bg-slate-900 border border-slate-800 hover:border-slate-700 text-white font-black uppercase tracking-widest rounded-2xl transition-all duration-300 flex items-center justify-center space-x-3 active:scale-95 shadow-xl text-xs md:text-base"
           >
-            <Zap className="w-5 h-5 text-amber-500" />
+            <Zap className="w-4 h-4 md:w-5 md:h-5 text-amber-500" />
             <span>{t('quick_analytics')}</span>
-            <span className="hidden md:inline text-[10px] font-black text-slate-500 ml-2 group-hover:text-slate-300 transition-colors">[Q]</span>
+            <span className="hidden xl:inline text-[10px] font-black text-slate-500 ml-2 group-hover:text-slate-300 transition-colors">[Q]</span>
           </button>
         </motion.div>
       </div>
 
       {/* Stats Grid */}
-      <motion.div variants={itemVariants} className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+      <motion.div variants={itemVariants} className="max-w-6xl mx-auto grid grid-cols-3 gap-3 md:gap-6">
         <StatCard 
             icon={Target} 
             color="text-accent" 
@@ -284,7 +332,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
                             onClick={() => {
                                 if (currentUser?.userId && confirm('【確認】現在の中断セッションを破棄してもよろしいですか？（進捗は保存されません）')) {
                                     db.sessions.delete([currentUser.userId, stats.activeSessions[0].category]);
-                                    setStats(prev => ({ ...prev, activeSessions: prev.activeSessions.slice(1) }));
+                                    setStats({ activeSessions: stats.activeSessions.slice(1) });
                                 }
                             }}
                             className="px-4 py-3 bg-slate-900 border border-slate-800 hover:border-red-500/50 text-slate-500 hover:text-red-500 font-black uppercase tracking-widest rounded-xl transition-all active:scale-95 text-xs"
@@ -333,12 +381,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
 };
 
 const StatCard: React.FC<{ icon: any, color: string, bg: string, label: string, value: string, sublabel: string }> = ({ icon: Icon, color, bg, label, value, sublabel }) => (
-    <div className="bg-secondary/20 border border-slate-800 p-8 rounded-3xl hover:bg-secondary/40 transition-all group">
-        <div className={`w-12 h-12 rounded-xl ${bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-            <Icon className={`w-6 h-6 ${color}`} />
+    <div className="bg-secondary/20 border border-slate-800 p-4 md:p-8 rounded-2xl md:rounded-3xl hover:bg-secondary/40 transition-all group">
+        <div className={`w-8 h-8 md:w-12 md:h-12 rounded-lg md:rounded-xl ${bg} flex items-center justify-center mb-3 md:mb-6 group-hover:scale-110 transition-transform`}>
+            <Icon className={`w-4 h-4 md:w-6 md:h-6 ${color}`} />
         </div>
-        <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">{label}</div>
-        <div className="text-3xl font-black italic uppercase tracking-tight text-white mb-1">{value}</div>
-        <div className="text-xs text-slate-600 font-medium">{sublabel}</div>
+        <div className="text-[7px] xs:text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.1em] xs:tracking-[0.2em] mb-1">{label}</div>
+        <div className="text-sm xs:text-lg md:text-3xl font-black italic uppercase tracking-tight text-white mb-0.5 md:mb-1 truncate">{value}</div>
+        <div className="text-[9px] md:text-xs text-slate-600 font-medium leading-tight line-clamp-1">{sublabel}</div>
     </div>
 );

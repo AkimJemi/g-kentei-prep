@@ -398,44 +398,48 @@ export const AdminDashboard: React.FC = () => {
   if (isLoading) return <div className="p-12 text-center animate-pulse text-accent font-black uppercase tracking-widest">データ読み込み中...</div>;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/[0.04] pb-12">
+    <div className="max-w-6xl mx-auto space-y-8 md:space-y-12 pb-20 px-4">
+      <div className="flex flex-col gap-6 border-b border-white/[0.04] pb-8 md:pb-12">
         <div className="space-y-2">
-            <h1 className="text-4xl font-black tracking-tight leading-none text-white">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-none text-white">
               管理者ダッシュボード
             </h1>
-            <p className="text-slate-500 font-medium tracking-tight">システム管理・ログ解析・コンテンツ承認</p>
+            <p className="text-sm md:text-base text-slate-500 font-medium tracking-tight">システム管理・ログ解析・コンテンツ承認</p>
         </div>
         
-        {/* Tab Navigation */}
-        <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-800 overflow-x-auto no-scrollbar whitespace-nowrap">
-            {[
-                { id: 'users', label: 'ユーザー管理', icon: Users },
-                { id: 'messages', label: '受信トレイ', icon: Activity },
-                { id: 'submissions', label: '承認待ち', icon: Database },
-                { id: 'questions', label: '問題データ', icon: BarChart3 },
-                { id: 'categories', label: 'カテゴリ', icon: Plus },
-                { id: 'notifications', label: '通知管理', icon: ShieldAlert },
-                { id: 'tasks', label: 'タスク管理', icon: Clock }
-            ].map((tab) => (
-                <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={clsx(
-                        "px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-bold transition-all shrink-0",
-                        activeTab === tab.id ? "bg-slate-800 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
-                    )}
-                >
-                    <tab.icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                    {tab.label}
-                    {tab.id === 'messages' && adminStats.unreadMessages > 0 && (
-                        <span className="bg-blue-500 text-white text-[9px] px-1.5 rounded-full">{adminStats.unreadMessages}</span>
-                    )}
-                    {tab.id === 'submissions' && adminStats.pendingSubmissions > 0 && (
-                        <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full">{adminStats.pendingSubmissions}</span>
-                    )}
-                </button>
-            ))}
+        {/* Tab Navigation - Mobile Scrollable */}
+        <div className="-mx-4 px-4 md:mx-0 md:px-0">
+          <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-800 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+            <div className="flex gap-1 min-w-max">
+              {[
+                  { id: 'users', label: 'ユーザー管理', icon: Users },
+                  { id: 'messages', label: '受信トレイ', icon: Activity },
+                  { id: 'submissions', label: '承認待ち', icon: Database },
+                  { id: 'questions', label: '問題データ', icon: BarChart3 },
+                  { id: 'categories', label: 'カテゴリ', icon: Plus },
+                  { id: 'notifications', label: '通知管理', icon: ShieldAlert },
+                  { id: 'tasks', label: 'タスク管理', icon: Clock }
+              ].map((tab) => (
+                  <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={clsx(
+                          "px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] md:text-xs font-bold transition-all whitespace-nowrap",
+                          activeTab === tab.id ? "bg-slate-800 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
+                      )}
+                  >
+                      <tab.icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                      <span className="hidden sm:inline">{tab.label}</span>
+                      {tab.id === 'messages' && adminStats.unreadMessages > 0 && (
+                          <span className="bg-blue-500 text-white text-[9px] px-1.5 rounded-full">{adminStats.unreadMessages}</span>
+                      )}
+                      {tab.id === 'submissions' && adminStats.pendingSubmissions > 0 && (
+                          <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full">{adminStats.pendingSubmissions}</span>
+                      )}
+                  </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1170,31 +1174,31 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Visualizations */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-secondary/20 border border-slate-800 p-8 rounded-3xl h-[400px] flex flex-col">
-                <div className="flex items-center gap-4 mb-8">
-                    <BarChart3 className="w-6 h-6 text-purple-400" />
-                    <h3 className="text-lg font-bold text-white">学習効率分析</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+            <div className="bg-secondary/20 border border-slate-800 p-4 md:p-8 rounded-3xl h-[300px] md:h-[400px] flex flex-col">
+                <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-8">
+                    <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-purple-400" />
+                    <h3 className="text-base md:text-lg font-bold text-white">学習効率分析</h3>
                 </div>
-                <div className="flex-1 flex items-end gap-4 px-4 pb-8">
+                <div className="flex-1 flex items-end gap-2 md:gap-4 px-2 md:px-4 pb-4 md:pb-8">
                     {[65, 45, 85, 30, 95, 60, 75].map((h, i) => (
-                        <div key={i} className="flex-1 flex flex-col gap-2 items-center group">
+                        <div key={i} className="flex-1 flex flex-col gap-1 md:gap-2 items-center group">
                             <motion.div 
                                 initial={{ height: 0 }}
                                 animate={{ height: `${h}%` }}
-                                className="w-full bg-gradient-to-t from-purple-500/20 to-purple-400 rounded-t-xl group-hover:to-accent transition-all duration-500"
+                                className="w-full bg-gradient-to-t from-purple-500/20 to-purple-400 rounded-t-lg md:rounded-t-xl group-hover:to-accent transition-all duration-500"
                             />
-                            <span className="text-[8px] font-black text-slate-700 uppercase">S-{i + 1}</span>
+                            <span className="text-[7px] md:text-[8px] font-black text-slate-700 uppercase">S-{i + 1}</span>
                         </div>
                     ))}
                 </div>
             </div>
-            <div className="bg-secondary/20 border border-slate-800 p-8 rounded-3xl h-[400px] flex flex-col">
-                 <div className="flex items-center gap-4 mb-8">
-                    <TrendingUp className="w-6 h-6 text-emerald-400" />
-                    <h3 className="text-lg font-bold text-white">システム成長推移</h3>
+            <div className="bg-secondary/20 border border-slate-800 p-4 md:p-8 rounded-3xl h-[300px] md:h-[400px] flex flex-col">
+                 <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-8">
+                    <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-emerald-400" />
+                    <h3 className="text-base md:text-lg font-bold text-white">システム成長推移</h3>
                 </div>
-                <div className="flex-1 flex items-center justify-center p-4 md:p-12">
+                <div className="flex-1 flex items-center justify-center p-2 md:p-12">
                      <div className="relative w-full h-full border-b border-l border-white/5">
                         <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <defs>

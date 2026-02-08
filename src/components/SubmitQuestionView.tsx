@@ -41,6 +41,10 @@ export const SubmitQuestionView: React.FC = () => {
         fetchCategories();
     }, []);
 
+    useEffect(() => {
+        console.log('showPreview state changed to:', showPreview);
+    }, [showPreview]);
+
     const handleOptionChange = (index: number, value: string) => {
         const newOptions = [...formData.options];
         newOptions[index] = value;
@@ -128,7 +132,7 @@ export const SubmitQuestionView: React.FC = () => {
     }
 
     return (
-        <div className="max-w-6xl mx-auto px-6 space-y-12 pb-24">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 space-y-8 md:space-y-12 pb-24">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/[0.04] pb-12">
                 <div className="space-y-4">
                     <button 
@@ -137,31 +141,39 @@ export const SubmitQuestionView: React.FC = () => {
                     >
                         <ChevronLeft className="w-4 h-4" />
                         <span className="text-[10px] font-black uppercase tracking-widest">戻る</span>
-                        <span className="text-[8px] font-black text-slate-800">[B / Esc]</span>
+                        <span className="hidden xl:inline text-[8px] font-black text-slate-800">[B / Esc]</span>
                     </button>
                     <div className="space-y-2">
-                        <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none">
+                        <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none">
                             Contribute <span className="text-accent underline decoration-accent/20 underline-offset-8">Logic</span>
                         </h1>
-                        <p className="text-slate-500 font-medium tracking-tight">新しい学習ノードをデータベースに提案し、コミュニティの進化に貢献しましょう。</p>
+                        <p className="text-[11px] md:text-sm text-slate-500 font-medium tracking-tight leading-relaxed">新しい学習ノードをデータベースに提案し、コミュニティの進化に貢献しましょう。</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 bg-slate-900/50 border border-slate-800 p-1 rounded-xl">
+                <div className="flex lg:hidden items-center gap-2 bg-slate-900/50 border border-slate-800 p-1 rounded-xl relative z-10">
                     <button
-                        onClick={() => setShowPreview(false)}
+                        type="button"
+                        onClick={() => {
+                            console.log('Edit button clicked, setting showPreview to false');
+                            setShowPreview(false);
+                        }}
                         className={clsx(
-                            "px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all",
-                            !showPreview ? "bg-slate-800 text-white" : "text-slate-500 hover:text-slate-300"
+                            "flex-1 px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                            !showPreview ? "bg-slate-800 text-white shadow-lg shadow-black/20" : "text-slate-500 hover:text-slate-300"
                         )}
                     >
                         <Layout className="w-3.5 h-3.5" />
                         編集
                     </button>
                     <button
-                        onClick={() => setShowPreview(true)}
+                        type="button"
+                        onClick={() => {
+                            console.log('Preview button clicked, setting showPreview to true');
+                            setShowPreview(true);
+                        }}
                         className={clsx(
-                            "px-4 py-2 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all",
-                            showPreview ? "bg-accent/10 text-accent" : "text-slate-500 hover:text-slate-300"
+                            "flex-1 px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                            showPreview ? "bg-accent/10 text-accent shadow-lg shadow-accent/5" : "text-slate-500 hover:text-slate-300"
                         )}
                     >
                         <Eye className="w-3.5 h-3.5" />
@@ -175,22 +187,28 @@ export const SubmitQuestionView: React.FC = () => {
                 <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className={clsx("space-y-8", showPreview && "opacity-50 pointer-events-none lg:opacity-100 lg:pointer-events-auto")}
+                    className={clsx(
+                        "space-y-8",
+                        // モバイル: 編集モードの時のみ表示
+                        showPreview ? "hidden lg:block" : "block",
+                        // デスクトップ: 常に表示だが、プレビューモードの時は薄く (モバイルのtoggle状態が残っている場合への配慮)
+                        showPreview && "lg:opacity-50 lg:pointer-events-none"
+                    )}
                 >
-                    <form onSubmit={handleSubmit} className="space-y-8 bg-secondary/10 border border-white/[0.04] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                    <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8 bg-secondary/10 border border-white/[0.04] rounded-3xl p-4 md:p-8 shadow-2xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 blur-[80px] rounded-full translate-x-20 -translate-y-20" />
                         
                         <div className="space-y-6 relative z-10">
                             {/* Category Selection */}
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                                <label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2 mb-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                                     カテゴリー / Category
                                 </label>
                                 <select
                                     value={formData.category}
                                     onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                                    className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl px-6 py-4 text-white font-bold appearance-none focus:ring-2 focus:ring-accent/50 focus:border-transparent outline-none transition-all cursor-pointer group"
+                                    className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl px-4 md:px-6 py-4 text-white font-bold appearance-none focus:ring-2 focus:ring-accent/50 focus:border-transparent outline-none transition-all cursor-pointer group"
                                 >
                                     {categories.map(c => (
                                         <option key={c.id} value={c.id} className="bg-slate-900">{c.title}</option>
@@ -200,8 +218,8 @@ export const SubmitQuestionView: React.FC = () => {
 
                             {/* Question Input */}
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                                <label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2 mb-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                                     問題文 / Question Statement
                                 </label>
                                 <textarea
@@ -209,16 +227,16 @@ export const SubmitQuestionView: React.FC = () => {
                                     rows={4}
                                     value={formData.question}
                                     onChange={(e) => setFormData(prev => ({ ...prev, question: e.target.value }))}
-                                    className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl px-6 py-4 text-white font-medium focus:ring-2 focus:ring-accent/50 focus:border-transparent outline-none transition-all resize-none placeholder:text-slate-700"
+                                    className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl px-4 md:px-6 py-4 text-white font-medium focus:ring-2 focus:ring-accent/50 focus:border-transparent outline-none transition-all resize-none placeholder:text-slate-700"
                                     placeholder="ここに問題的内容を入力してください..."
                                 />
                             </div>
 
                             {/* Options Input */}
                             <div className="space-y-4">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                                    選択肢の構成 / Logical Options
+                                <label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2 mb-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                                    選択肢 / Logical Options
                                 </label>
                                 <div className="grid gap-3">
                                     {formData.options.map((opt, idx) => (
@@ -228,7 +246,7 @@ export const SubmitQuestionView: React.FC = () => {
                                                 name="correctAnswer"
                                                 checked={formData.correctAnswer === idx}
                                                 onChange={() => setFormData(prev => ({ ...prev, correctAnswer: idx }))}
-                                                className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-accent bg-slate-950 border-slate-800 focus:ring-accent focus:ring-offset-0 z-10 cursor-pointer"
+                                                className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-accent bg-slate-950 border-slate-800 focus:ring-accent focus:ring-offset-0 z-10 cursor-pointer"
                                             />
                                             <input
                                                 type="text"
@@ -236,12 +254,12 @@ export const SubmitQuestionView: React.FC = () => {
                                                 value={opt}
                                                 onChange={(e) => handleOptionChange(idx, e.target.value)}
                                                 className={clsx(
-                                                    "w-full bg-slate-950/50 border rounded-2xl pl-16 pr-6 py-4 text-white font-medium transition-all outline-none",
+                                                    "w-full bg-slate-950/50 border rounded-2xl pl-12 md:pl-16 pr-4 md:pr-6 py-4 text-white text-sm md:text-base font-medium transition-all outline-none",
                                                     formData.correctAnswer === idx 
                                                         ? "border-accent/40 bg-accent/5 shadow-[0_0_20px_rgba(34,211,238,0.05)]" 
                                                         : "border-slate-800 hover:border-slate-700 placeholder:text-slate-700"
                                                 )}
-                                                placeholder={`Option ${idx + 1}`}
+                                                placeholder={`選択肢 ${idx + 1}`}
                                             />
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black text-slate-800 group-hover:text-slate-600 transition-colors uppercase tracking-widest">
                                                 {idx === formData.correctAnswer ? 'CORRECT' : `ID-0${idx + 1}`}
@@ -253,8 +271,8 @@ export const SubmitQuestionView: React.FC = () => {
 
                             {/* Explanation Input */}
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                                <label className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2 mb-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                                     理論解説 / Rationale Analysis
                                 </label>
                                 <textarea
@@ -262,7 +280,7 @@ export const SubmitQuestionView: React.FC = () => {
                                     rows={3}
                                     value={formData.explanation}
                                     onChange={(e) => setFormData(prev => ({ ...prev, explanation: e.target.value }))}
-                                    className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl px-6 py-4 text-white font-medium focus:ring-2 focus:ring-accent/50 focus:border-transparent outline-none transition-all resize-none placeholder:text-slate-700"
+                                    className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl px-4 md:px-6 py-4 text-white font-medium focus:ring-2 focus:ring-accent/50 focus:border-transparent outline-none transition-all resize-none placeholder:text-slate-700"
                                     placeholder="正解に至る論理的背景を記述してください..."
                                 />
                             </div>
@@ -272,14 +290,14 @@ export const SubmitQuestionView: React.FC = () => {
                             <button
                                 type="submit"
                                 disabled={status === 'submitting' || !isFormValid}
-                                className="flex-1 bg-gradient-to-r from-accent to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl shadow-accent/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed group"
+                                className="flex-1 bg-gradient-to-r from-accent to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black uppercase tracking-widest py-4 md:py-5 rounded-2xl shadow-xl shadow-accent/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed group"
                             >
                                 {status === 'submitting' ? (
                                     <RefreshCw className="w-5 h-5 animate-spin" />
                                 ) : (
                                     <>
                                         <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                        <span>問題をネットワークに送信</span>
+                                        <span>問題送信</span>
                                     </>
                                 )}
                             </button>
@@ -298,10 +316,16 @@ export const SubmitQuestionView: React.FC = () => {
                 {/* Preview Section */}
                 <motion.div
                     initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 1 }}
-                    className={clsx("space-y-8 sticky top-24 h-fit", !showPreview && "hidden lg:block")}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={clsx(
+                        "space-y-8 sticky top-24 h-fit",
+                        // モバイル: プレビューモードの時のみ表示
+                        showPreview ? "block" : "hidden lg:block",
+                        // デスクトップ: 常に表示だが、編集モードの時は薄く (モバイルのtoggle状態が残っている場合への配慮)
+                        !showPreview && "lg:opacity-50"
+                    )}
                 >
-                    <div className="p-8 bg-slate-950 border border-white/[0.04] rounded-[2.5rem] shadow-2xl relative overflow-hidden min-h-[500px] flex flex-col">
+                    <div className="p-4 md:p-8 bg-slate-950 border border-white/[0.04] rounded-[2.5rem] shadow-2xl relative overflow-hidden min-h-[500px] flex flex-col">
                         <div className="absolute top-8 left-8 flex items-center gap-4">
                             <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                             <div className="w-3 h-3 rounded-full bg-amber-500/20 border border-amber-500/50" />

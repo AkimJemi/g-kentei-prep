@@ -49,11 +49,11 @@ export const ContactView: React.FC = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto space-y-8">
+        <div className="max-w-2xl mx-auto px-4 md:px-0 space-y-8">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 p-8 shadow-xl"
+                className="bg-slate-800/50 backdrop-blur-sm rounded-3xl border border-slate-700/50 p-6 md:p-10 shadow-xl"
             >
                 <div className="flex items-center space-x-4 mb-8">
                     <div className="p-3 bg-blue-500/20 rounded-xl">

@@ -20,6 +20,7 @@ import { FlashcardView } from './components/FlashcardView';
 import { Cpu, Database, Clock, BarChart3, Layout as LayoutIcon, Github, Shield, Radio, LogOut, Settings, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
+import { useDashboardStore } from './store/useDashboardStore';
 
 export default function App() {
   const { t } = useLanguageStore();
@@ -84,16 +85,24 @@ export default function App() {
   }, []);
 
   const handleNavigate = (newView: typeof view) => {
+    // Always attempt to scroll to top on navigation to ensure SPA feel
+    const scrollToTop = () => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0;
+      }
+      window.scrollTo(0, 0);
+    };
+
+    if (view === newView) {
+      scrollToTop();
+      return;
+    }
+
     if (view === 'quiz' && isActive && newView !== 'quiz') {
       endQuiz();
     }
-    
-    // Explicitly scroll to top if navigating to the dashboard or same view
-    if ((newView === 'dashboard' || view === newView) && scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'auto' });
-      window.scrollTo(0, 0); // Primary fallback for outer containers
-    }
-    
+
+    scrollToTop();
     setView(newView);
   };
 
@@ -125,6 +134,13 @@ export default function App() {
     return () => timers.forEach(t => clearTimeout(t));
   }, [view, isBooting, isAuthenticated]);
 
+  const resetDashboard = useDashboardStore(state => state.reset);
+
+  const handleLogout = () => {
+    resetDashboard();
+    logout();
+  };
+
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       // Skip if user is typing in an input field
@@ -144,22 +160,28 @@ export default function App() {
       // View-specific shortcuts (E, Q, W, 1-4, etc) are handled by individual components
       switch (key) {
         case 'h': 
-          if (view !== 'quiz') handleNavigate('dashboard'); 
+          handleNavigate('dashboard'); 
           break;
         case 's': 
-          if (view !== 'quiz') handleNavigate('study'); 
+          handleNavigate('study'); 
+          break;
+        case 'p': 
+          handleNavigate('submit'); 
+          break;
+        case 't': 
+          handleNavigate('contact'); 
           break;
         case 'l': 
-          if (view !== 'quiz') handleNavigate('history'); 
+          handleNavigate('history'); 
           break;
         case 'm': 
-          if (view !== 'quiz') handleNavigate('stats'); 
+          handleNavigate('stats'); 
           break;
         case 'a': 
           if (isAdmin && view !== 'quiz') handleNavigate('admin'); 
           break;
         case 'f': 
-          if (view !== 'quiz') handleNavigate('flashcards'); 
+          handleNavigate('flashcards'); 
           break;
         // All other keys are handled by view-specific components
       }
@@ -228,12 +250,38 @@ export default function App() {
                     <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-slate-950 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                   )}
                 </button>
+
+                {/* Mobile Quick Actions */}
+                <div className="lg:hidden flex items-center gap-2">
+                  <button
+                    onClick={() => handleNavigate('submit')}
+                    className={clsx(
+                      "p-2 rounded-lg transition-all",
+                      view === 'submit' ? "bg-accent/10 text-accent" : "text-slate-400 hover:text-white"
+                    )}
+                    title="問題投稿"
+                  >
+                    <Radio className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleNavigate('contact')}
+                    className={clsx(
+                      "p-2 rounded-lg transition-all",
+                      view === 'contact' ? "bg-accent/10 text-accent" : "text-slate-400 hover:text-white"
+                    )}
+                    title="お問い合わせ"
+                  >
+                    <Shield className="w-4 h-4" />
+                  </button>
+                </div>
             <nav className="hidden lg:flex items-center gap-1">
               {[
                 { id: 'dashboard', icon: LayoutIcon, label: t('home'), shortcut: 'H' },
                 { id: 'study', icon: Database, label: t('study'), shortcut: 'S' },
                 { id: 'history', icon: Clock, label: t('logs'), shortcut: 'L' },
                 { id: 'stats', icon: BarChart3, label: t('metrics'), shortcut: 'M' },
+                { id: 'submit', icon: Radio, label: '問題投稿', shortcut: 'P' },
+                { id: 'contact', icon: Shield, label: 'お問い合わせ', shortcut: 'T' },
                 ...(isAdmin ? [{ id: 'admin', icon: Settings, label: t('admin'), shortcut: 'A' }] : [])
               ].map((item) => (
                 <button
@@ -246,7 +294,7 @@ export default function App() {
                 >
                   <item.icon className="w-4 h-4" />
                   <span className="text-[11px] font-black uppercase tracking-widest">{item.label}</span>
-                  <span className="text-[8px] font-black text-slate-700/60 group-hover:text-slate-500 transition-colors">[{item.shortcut}]</span>
+                  <span className="hidden xl:inline text-[8px] font-black text-slate-700/60 group-hover:text-slate-500 transition-colors">[{item.shortcut}]</span>
                 </button>
               ))}
             </nav>
@@ -259,14 +307,14 @@ export default function App() {
                 <span className="hidden xs:block text-[7px] font-mono text-accent uppercase tracking-[0.2em]">{currentUser.role === 'admin' ? t('admin') : 'USER'} PROTOCOL</span>
               </div>
             )}
-            <button 
-              onClick={logout}
+            <motion.div 
+              onClick={handleLogout}
               className="p-2 text-slate-500 hover:text-red-500 transition-colors group relative"
               title={t('logout')}
             >
               <LogOut className="w-4 h-4" />
-              <span className="hidden md:block absolute -bottom-1 right-0 text-[7px] font-black text-slate-700/60 group-hover:text-red-500/40 transition-colors">[ESC]</span>
-            </button>
+              <span className="hidden xl:block absolute -bottom-1 right-0 text-[7px] font-black text-slate-700/60 group-hover:text-red-500/40 transition-colors">[ESC]</span>
+            </motion.div>
             <div className="text-right hidden sm:block">
               <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest animate-pulse flex items-center gap-2 justify-end">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
@@ -281,21 +329,21 @@ export default function App() {
           ref={scrollContainerRef}
           className="flex-1 overflow-y-auto overflow-x-hidden relative z-0 flex flex-col min-h-screen"
         >
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div 
               key={view}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="flex-1 px-4 md:px-8 py-8 md:py-12"
+              className="flex-1 py-4 md:py-12"
             >
               {view === 'dashboard' && (
                 <Dashboard 
                   onStartQuiz={() => handleNavigate('study')} 
                   onViewStats={() => handleNavigate('stats')}
                   onStartWeakPointQuiz={() => setView('quiz')}
-                  onResumeSession={async (category) => {
+                  onResumeSession={async (category: string) => {
                     const result = await startQuiz(category);
                     if (result.success) {
                         setView('quiz');
@@ -349,10 +397,7 @@ export default function App() {
                <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-white transition-colors">
                   <Github className="w-4 h-4" />
                </a>
-               <p 
-                 onClick={() => setView('admin')}
-                 className="text-slate-700 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] cursor-pointer hover:text-red-500 transition-colors"
-               >
+               <p className="text-slate-700 text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] cursor-pointer hover:text-red-500 transition-colors">
                  &copy; {new Date().getFullYear()} {t('copyright')}
                </p>
             </div>

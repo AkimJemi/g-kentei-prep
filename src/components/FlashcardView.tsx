@@ -68,11 +68,11 @@ export const FlashcardView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const currentCard = cards[currentIndex];
 
     return (
-        <div className="max-w-4xl mx-auto space-y-12 pb-24 h-[calc(100vh-200px)] flex flex-col">
+        <div className="max-w-4xl mx-auto px-4 md:px-0 space-y-8 md:space-y-12 pb-24 min-h-[calc(100vh-160px)] flex flex-col">
             <div className="flex items-center justify-between border-b border-white/[0.04] pb-8">
                 <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors group">
-                    <X className="w-4 h-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">記憶終了 (Exit)</span>
+                    <X className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">記憶終了 (Exit)</span>
                 </button>
                 <div className="flex items-center gap-4">
                     <Brain className="w-5 h-5 text-accent" />
@@ -80,9 +80,9 @@ export const FlashcardView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center gap-12">
+            <div className="flex-1 flex flex-col items-center justify-center gap-8 md:gap-12">
                 <div 
-                    className="relative w-full max-w-2xl aspect-[1.6/1] cursor-pointer group perspective-1000"
+                    className="relative w-full max-w-2xl aspect-[1.2/1] md:aspect-[1.6/1] cursor-pointer group perspective-1000"
                     onClick={handleFlip}
                 >
                     <AnimatePresence mode="wait">
@@ -93,7 +93,7 @@ export const FlashcardView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             exit={{ rotateY: isFlipped ? 90 : -90, opacity: 0 }}
                             transition={{ duration: 0.4, ease: "easeOut" }}
                             className={clsx(
-                                "absolute inset-0 w-full h-full rounded-[2.5rem] p-12 flex flex-col items-center justify-center text-center shadow-2xl border-2 backface-hidden",
+                                "absolute inset-0 w-full h-full rounded-[2rem] md:rounded-[2.5rem] p-8 md:p-12 flex flex-col items-center justify-center text-center shadow-2xl border-2 backface-hidden",
                                 isFlipped 
                                     ? "bg-gradient-to-br from-emerald-500/20 to-emerald-900/40 border-emerald-500/30" 
                                     : "bg-gradient-to-br from-slate-900 via-secondary/20 to-slate-950 border-white/[0.05] group-hover:border-accent/30"
@@ -106,7 +106,7 @@ export const FlashcardView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             <div className="space-y-6">
                                 <h3 className={clsx(
                                     "font-black italic tracking-tighter uppercase leading-tight",
-                                    isFlipped ? "text-3xl text-emerald-400" : "text-3xl text-white"
+                                    isFlipped ? "text-xl md:text-3xl text-emerald-400" : "text-xl md:text-3xl text-white"
                                 )}>
                                     {isFlipped ? currentCard?.answer : currentCard?.question}
                                 </h3>
@@ -126,26 +126,26 @@ export const FlashcardView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     </AnimatePresence>
                 </div>
 
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-4 md:gap-8">
                     <button 
                         onClick={handlePrev}
-                        className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 hover:text-white transition-all hover:scale-110"
+                        className="p-3 md:p-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 hover:text-white transition-all hover:scale-110 active:scale-90"
                     >
-                        <ChevronLeft className="w-8 h-8" />
+                        <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
                     </button>
                     
                     <button 
                         onClick={handleFlip}
-                        className="px-12 py-5 bg-accent hover:bg-sky-400 text-primary font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-accent/20 transition-all active:scale-95"
+                        className="px-8 md:px-12 py-4 md:py-5 bg-accent hover:bg-sky-400 text-primary font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-accent/20 transition-all active:scale-95 text-xs md:text-base"
                     >
                         {isFlipped ? 'NEXT (次へ)' : 'REVEAL (回答表示)'}
                     </button>
-
+ 
                     <button 
                         onClick={handleNext}
-                        className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 hover:text-white transition-all hover:scale-110"
+                        className="p-3 md:p-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-500 hover:text-white transition-all hover:scale-110 active:scale-90"
                     >
-                        <ChevronRight className="w-8 h-8" />
+                        <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
                     </button>
                 </div>
 

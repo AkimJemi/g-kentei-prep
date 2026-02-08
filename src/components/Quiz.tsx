@@ -166,7 +166,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
             >
                 <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                 <span className="text-[10px] font-black uppercase tracking-widest hidden xs:inline">{t('abort_scan')}</span>
-                <span className="text-[8px] font-black text-slate-700 hidden sm:inline ml-1">[B / Esc]</span>
+                <span className="text-[8px] font-black text-slate-700 hidden xl:inline ml-1">[B / Esc]</span>
             </motion.button>
             <motion.div 
                 initial={{ y: -20, opacity: 0 }}
@@ -259,7 +259,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                         >
                             <div className="flex flex-col items-center gap-1">
                                 {isReading ? <VolumeX className="w-5 h-5 md:w-6 md:h-6" /> : <Volume2 className="w-5 h-5 md:w-6 md:h-6" />}
-                                <span className="hidden md:block text-[8px] font-black text-accent/60">[V]</span>
+                                <span className="hidden xl:block text-[8px] font-black text-accent/60">[V]</span>
                             </div>
                         </motion.button>
                     </div>
@@ -296,7 +296,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                                 <div className="relative z-10 flex items-center gap-2">
                                     {(hasAnswered && isThisCorrect) && <CheckCircle2 className="w-5 h-5 text-green-500" />}
                                     {showWrong && <XCircle className="w-5 h-5 text-red-500" />}
-                                    <div className="text-[10px] font-black text-slate-600">
+                                    <div className="hidden xl:inline text-[10px] font-black text-slate-600">
                                         [{idx + 1}]
                                     </div>
                                 </div>
@@ -340,7 +340,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                     <span>{t('prev_phase')}</span>
-                                    <span className="text-[8px] font-black text-slate-600 ml-1">[←]</span>
+                                    <span className="hidden xl:inline text-[8px] font-black text-slate-600 ml-1">[←]</span>
                                 </motion.button>
                                 <motion.button
                                     whileHover={{ x: 2 }}
@@ -350,7 +350,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                                 >
                                     <span>{currentQuestionIndex === questions.length - 1 ? t('verified') : t('next_phase')}</span>
                                     <ChevronRight className="w-4 h-4" />
-                                    <span className="text-[8px] font-black text-primary/40 ml-1">[Enter/→]</span>
+                                    <span className="hidden xl:inline text-[8px] font-black text-primary/40 ml-1">[Enter/→]</span>
                                 </motion.button>
                             </div>
                         </motion.div>
@@ -381,8 +381,8 @@ const QuizResults: React.FC<{ score: number, total: number, onRetry: () => void,
              <AwardBadge score={score} total={total} />
           </motion.div>
           <div className="space-y-2">
-              <h2 className="text-5xl md:text-6xl font-black italic uppercase tracking-tight bg-gradient-to-br from-white via-slate-200 to-slate-500 bg-clip-text text-transparent">{t('scan_complete')}</h2>
-              <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px]">G検定 模擬試験終了</p>
+              <h2 className="text-3xl md:text-6xl font-black italic uppercase tracking-tight bg-gradient-to-br from-white via-slate-200 to-slate-500 bg-clip-text text-transparent">{t('scan_complete')}</h2>
+              <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[9px] md:text-[10px]">G検定 模擬試験終了</p>
           </div>
         </div>
         
@@ -411,7 +411,7 @@ const QuizResults: React.FC<{ score: number, total: number, onRetry: () => void,
         >
             <RefreshCw className="w-5 h-5" />
             <span>{t('reset')}</span>
-            <span className="text-[10px] font-black text-primary/40">[R]</span>
+            <span className="text-[10px] font-black text-primary/40 hidden xl:inline">[R]</span>
         </motion.button>
         
         <motion.button
@@ -422,7 +422,7 @@ const QuizResults: React.FC<{ score: number, total: number, onRetry: () => void,
         >
             <LogOut className="w-5 h-5" />
             <span>{t('return_to_base')}</span>
-            <span className="text-[10px] font-black text-slate-500">[B]</span>
+            <span className="text-[10px] font-black text-slate-500 hidden xl:inline">[B]</span>
         </motion.button>
       </motion.div>
     );
