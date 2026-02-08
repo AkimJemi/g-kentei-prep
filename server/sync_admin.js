@@ -14,17 +14,17 @@ async function updateAdmin() {
     console.log('Syncing Admin Users...');
     
     // Check for 'akim'
-    const akimCheck = await client.query("SELECT * FROM users WHERE userId = 'akim'");
+    const akimCheck = await client.query("SELECT * FROM g_kentei_users WHERE userId = 'akim'");
     if (akimCheck.rows.length > 0) {
       console.log('Removing old admin akim...');
-      await client.query("DELETE FROM users WHERE userId = 'akim'");
+      await client.query("DELETE FROM g_kentei_users WHERE userId = 'akim'");
     }
     
     // Check for 'jemin.kim'
-    const jeminCheck = await client.query("SELECT * FROM users WHERE userId = 'jemin.kim'");
+    const jeminCheck = await client.query("SELECT * FROM g_kentei_users WHERE userId = 'jemin.kim'");
     if (jeminCheck.rows.length === 0) {
       console.log('Adding new admin jemin.kim...');
-      await client.query("INSERT INTO users (userId, nickname, role) VALUES ('jemin.kim', 'Akim', 'admin')");
+      await client.query("INSERT INTO g_kentei_users (userId, nickname, role) VALUES ('jemin.kim', 'Akim', 'admin')");
     } else {
       console.log('jemin.kim already exists.');
     }

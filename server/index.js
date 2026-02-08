@@ -28,7 +28,7 @@ const initDB = async () => {
   try {
     console.log('[Neural DB] Applying Schema Manifest...');
     await client.query(`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE IF NOT EXISTS g_kentei_users (
         userId TEXT PRIMARY KEY,
         nickname TEXT,
         role TEXT,
@@ -36,9 +36,9 @@ const initDB = async () => {
         joinedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE TABLE IF NOT EXISTS attempts (
+      CREATE TABLE IF NOT EXISTS g_kentei_attempts (
         id SERIAL PRIMARY KEY,
-        userId TEXT REFERENCES users(userId),
+        userId TEXT REFERENCES g_kentei_users(userId),
         date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         score INTEGER,
         totalQuestions INTEGER,
@@ -47,8 +47,8 @@ const initDB = async () => {
         userAnswers TEXT
       );
 
-      CREATE TABLE IF NOT EXISTS sessions (
-        userId TEXT REFERENCES users(userId),
+      CREATE TABLE IF NOT EXISTS g_kentei_sessions (
+        userId TEXT REFERENCES g_kentei_users(userId),
         category TEXT,
         currentQuestionIndex INTEGER,
         answers TEXT,
@@ -56,9 +56,9 @@ const initDB = async () => {
         PRIMARY KEY(userId, category)
       );
 
-      CREATE TABLE IF NOT EXISTS messages (
+      CREATE TABLE IF NOT EXISTS g_kentei_messages (
         id SERIAL PRIMARY KEY,
-        userId TEXT REFERENCES users(userId),
+        userId TEXT REFERENCES g_kentei_users(userId),
         name TEXT,
         email TEXT,
         topic TEXT,
@@ -69,9 +69,9 @@ const initDB = async () => {
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE TABLE IF NOT EXISTS notifications (
+      CREATE TABLE IF NOT EXISTS g_kentei_notifications (
         id SERIAL PRIMARY KEY,
-        userId TEXT REFERENCES users(userId),
+        userId TEXT REFERENCES g_kentei_users(userId),
         title TEXT,
         content TEXT,
         type TEXT DEFAULT 'info',
@@ -79,7 +79,7 @@ const initDB = async () => {
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE TABLE IF NOT EXISTS submitted_questions (
+      CREATE TABLE IF NOT EXISTS g_kentei_submitted_questions (
         id SERIAL PRIMARY KEY,
         category TEXT,
         question TEXT,
@@ -90,7 +90,7 @@ const initDB = async () => {
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE TABLE IF NOT EXISTS todos (
+      CREATE TABLE IF NOT EXISTS g_kentei_todos (
         id SERIAL PRIMARY KEY,
         task TEXT,
         status TEXT DEFAULT 'pending',
@@ -99,7 +99,7 @@ const initDB = async () => {
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE TABLE IF NOT EXISTS questions (
+      CREATE TABLE IF NOT EXISTS g_kentei_questions (
         id SERIAL PRIMARY KEY,
         category TEXT,
         question TEXT,
@@ -111,15 +111,15 @@ const initDB = async () => {
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       
-      CREATE TABLE IF NOT EXISTS public_chat (
+      CREATE TABLE IF NOT EXISTS g_kentei_public_chat (
           id SERIAL PRIMARY KEY,
-          userId TEXT REFERENCES users(userId),
+          userId TEXT REFERENCES g_kentei_users(userId),
           message TEXT,
           replyTo INTEGER, 
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE TABLE IF NOT EXISTS categories (
+      CREATE TABLE IF NOT EXISTS g_kentei_categories (
         id TEXT PRIMARY KEY,
         title TEXT,
         icon TEXT,
@@ -131,7 +131,7 @@ const initDB = async () => {
     `);
 
     // Seed Categories if empty
-    const catRes = await client.query('SELECT count(*) as count FROM categories');
+    const catRes = await client.query('SELECT count(*) as count FROM g_kentei_categories');
     if (parseInt(catRes.rows[0].count) === 0) {
         console.log('[Neural DB] Seeding Initial Categories...');
         const initialCategories = [
@@ -149,7 +149,7 @@ const initDB = async () => {
 
         for (const [idx, cat] of initialCategories.entries()) {
             await client.query(`
-                INSERT INTO categories (id, title, icon, color, bg, description, displayOrder)
+                INSERT INTO g_kentei_categories (id, title, icon, color, bg, description, displayOrder)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
             `, [cat.id, cat.title, cat.icon, cat.color, cat.bg, cat.description, idx]);
         }
@@ -157,11 +157,11 @@ const initDB = async () => {
     }
 
     // Seed Admin User if empty
-    const userRes = await client.query('SELECT count(*) as count FROM users');
+    const userRes = await client.query('SELECT count(*) as count FROM g_kentei_users');
     if (parseInt(userRes.rows[0].count) === 0) {
         console.log('[Neural DB] Seeding Admin Overlord...');
         await client.query(`
-            INSERT INTO users (userId, nickname, role)
+            INSERT INTO g_kentei_users (userId, nickname, role)
             VALUES ($1, $2, $3)
         `, ['jemin.kim', 'Akim', 'admin']);
         console.log('[Neural DB] Admin Seeded.');
@@ -203,13 +203,13 @@ const migrateTable = async (tableName, columns) => {
 
 // Start migrations
 (async () => {
-    await migrateTable('messages', [
+    await migrateTable('g_kentei_messages', [
         { name: 'userId', type: 'TEXT' },
         { name: 'reply', type: 'TEXT' },
         { name: 'repliedAt', type: 'TIMESTAMP' },
         { name: 'status', type: 'TEXT DEFAULT \'unread\'' }
     ]);
-    await migrateTable('public_chat', [
+    await migrateTable('g_kentei_public_chat', [
         { name: 'replyTo', type: 'INTEGER' }
     ]);
 })();
@@ -272,7 +272,7 @@ const getPaginatedData = async (tableName, req, searchColumns = []) => {
 // Category APIs
 app.get('/api/categories', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM categories ORDER BY displayOrder ASC');
+        const result = await pool.query('SELECT * FROM g_kentei_categories ORDER BY displayOrder ASC');
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -283,7 +283,7 @@ app.post('/api/admin/categories', async (req, res) => {
     const { id, title, icon, color, bg, description, displayOrder } = req.body;
     try {
         await pool.query(`
-            INSERT INTO categories (id, title, icon, color, bg, description, displayOrder)
+            INSERT INTO g_kentei_categories (id, title, icon, color, bg, description, displayOrder)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, [id, title, icon, color, bg, description, displayOrder || 0]);
         res.json({ success: true });
@@ -296,7 +296,7 @@ app.put('/api/admin/categories/:id', async (req, res) => {
     const { title, icon, color, bg, description, displayOrder } = req.body;
     try {
         await pool.query(`
-            UPDATE categories 
+            UPDATE g_kentei_categories 
             SET title = $1, icon = $2, color = $3, bg = $4, description = $5, displayOrder = $6
             WHERE id = $7
         `, [title, icon, color, bg, description, displayOrder, req.params.id]);
@@ -308,7 +308,7 @@ app.put('/api/admin/categories/:id', async (req, res) => {
 
 app.delete('/api/admin/categories/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM categories WHERE id = $1', [req.params.id]);
+        await pool.query('DELETE FROM g_kentei_categories WHERE id = $1', [req.params.id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -318,10 +318,10 @@ app.delete('/api/admin/categories/:id', async (req, res) => {
 
 app.get('/api/admin/stats', async (req, res) => {
     try {
-        const unreadMessagesResult = await pool.query('SELECT count(*) as count FROM messages WHERE status = $1', ['unread']);
-        const pendingSubmissionsResult = await pool.query('SELECT count(*) as count FROM submitted_questions WHERE status = $1', ['pending']);
-        const totalUsersResult = await pool.query('SELECT count(*) as count FROM users');
-        const totalQuestionsResult = await pool.query('SELECT count(*) as count FROM questions');
+        const unreadMessagesResult = await pool.query('SELECT count(*) as count FROM g_kentei_messages WHERE status = $1', ['unread']);
+        const pendingSubmissionsResult = await pool.query('SELECT count(*) as count FROM g_kentei_submitted_questions WHERE status = $1', ['pending']);
+        const totalUsersResult = await pool.query('SELECT count(*) as count FROM g_kentei_users');
+        const totalQuestionsResult = await pool.query('SELECT count(*) as count FROM g_kentei_questions');
         
         res.json({ 
             unreadMessages: parseInt(unreadMessagesResult.rows[0].count),
@@ -342,7 +342,7 @@ app.get('/api/questions', async (req, res) => {
     const usePagination = page !== undefined || limit !== undefined || search !== undefined || category !== undefined;
     
     if (!usePagination) {
-        const result = await pool.query('SELECT * FROM questions');
+        const result = await pool.query('SELECT * FROM g_kentei_questions');
         const questions = result.rows.map(q => ({
             ...q,
             options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
@@ -351,7 +351,7 @@ app.get('/api/questions', async (req, res) => {
         return res.json(questions);
     }
 
-    const { data, pagination } = await getPaginatedData('questions', req, ['question', 'category', 'explanation']);
+    const { data, pagination } = await getPaginatedData('g_kentei_questions', req, ['question', 'category', 'explanation']);
     const formatted = data.map(q => ({
         ...q,
         options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
@@ -367,7 +367,7 @@ app.post('/api/admin/questions', async (req, res) => {
    const { category, question, options, correctAnswer, explanation, translations, source } = req.body;
    try {
      const result = await pool.query(`
-       INSERT INTO questions (category, question, options, correctAnswer, explanation, translations, source)
+       INSERT INTO g_kentei_questions (category, question, options, correctAnswer, explanation, translations, source)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id
      `, [category, question, JSON.stringify(options), correctAnswer, explanation, JSON.stringify(translations || {}), source || 'admin']);
@@ -381,7 +381,7 @@ app.put('/api/admin/questions/:id', async (req, res) => {
     const { category, question, options, correctAnswer, explanation, translations } = req.body;
     try {
         await pool.query(`
-            UPDATE questions 
+            UPDATE g_kentei_questions 
             SET category = $1, question = $2, options = $3, correctAnswer = $4, explanation = $5, translations = $6
             WHERE id = $7
         `, [category, question, JSON.stringify(options), correctAnswer, explanation, JSON.stringify(translations || {}), req.params.id]);
@@ -393,7 +393,7 @@ app.put('/api/admin/questions/:id', async (req, res) => {
 
 app.delete('/api/admin/questions/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM questions WHERE id = $1', [req.params.id]);
+        await pool.query('DELETE FROM g_kentei_questions WHERE id = $1', [req.params.id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -404,7 +404,7 @@ app.post('/api/contact', async (req, res) => {
   const { name, email, topic, message, userId } = req.body;
   try {
     await pool.query(`
-      INSERT INTO messages (name, email, topic, message, userId) 
+      INSERT INTO g_kentei_messages (name, email, topic, message, userId) 
       VALUES ($1, $2, $3, $4, $5)
     `, [name, email, topic, message, userId || null]);
     console.log(`[Neural Link] New message received: ${topic} from User ${userId || 'Guest'}`);
@@ -419,7 +419,7 @@ app.post('/api/submit-question', async (req, res) => {
   const { category, question, options, correctAnswer, explanation } = req.body;
   try {
     await pool.query(`
-      INSERT INTO submitted_questions (category, question, options, correctAnswer, explanation) 
+      INSERT INTO g_kentei_submitted_questions (category, question, options, correctAnswer, explanation) 
       VALUES ($1, $2, $3, $4, $5)
     `, [category, question, JSON.stringify(options), correctAnswer, explanation]);
     console.log(`[Neural Link] New question submitted in ${category}`);
@@ -438,8 +438,8 @@ app.get('/api/admin/messages', async (req, res) => {
     if (!usePagination) {
         const result = await pool.query(`
             SELECT m.*, u.nickname 
-            FROM messages m 
-            LEFT JOIN users u ON m.userId = u.userId 
+            FROM g_kentei_messages m 
+            LEFT JOIN g_kentei_users u ON m.userId = u.userId 
             ORDER BY m.createdAt DESC
         `);
         return res.json(result.rows);
@@ -464,7 +464,7 @@ app.get('/api/admin/messages', async (req, res) => {
     }
 
     const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
-    const countRes = await pool.query(`SELECT count(*) as total FROM messages m ${whereClause}`, params);
+    const countRes = await pool.query(`SELECT count(*) as total FROM g_kentei_messages m ${whereClause}`, params);
     const total = parseInt(countRes.rows[0].total);
 
     const validSortColumns = ['id', 'createdAt', 'name', 'topic', 'status'];
@@ -474,8 +474,8 @@ app.get('/api/admin/messages', async (req, res) => {
     const offset = (parseInt(page || 1) - 1) * parseInt(limit || 10);
     const dataRes = await pool.query(`
         SELECT m.*, u.nickname 
-        FROM messages m 
-        LEFT JOIN users u ON m.userId = u.userId 
+        FROM g_kentei_messages m 
+        LEFT JOIN g_kentei_users u ON m.userId = u.userId 
         ${whereClause} 
         ORDER BY m.${safeSortBy} ${safeOrder} 
         LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -499,15 +499,15 @@ app.post('/api/admin/messages/:id/reply', async (req, res) => {
   const { id } = req.params;
   const { reply } = req.body;
   try {
-    const msgRes = await pool.query('SELECT * FROM messages WHERE id = $1', [id]);
+    const msgRes = await pool.query('SELECT * FROM g_kentei_messages WHERE id = $1', [id]);
     const msg = msgRes.rows[0];
     if (!msg) return res.status(404).json({ error: 'Message not found' });
 
-    await pool.query('UPDATE messages SET reply = $1, repliedAt = CURRENT_TIMESTAMP, status = $2 WHERE id = $3', [reply, 'replied', id]);
+    await pool.query('UPDATE g_kentei_messages SET reply = $1, repliedAt = CURRENT_TIMESTAMP, status = $2 WHERE id = $3', [reply, 'replied', id]);
 
     if (msg.userId) {
         await pool.query(`
-            INSERT INTO notifications (userId, title, content, type) 
+            INSERT INTO g_kentei_notifications (userId, title, content, type) 
             VALUES ($1, $2, $3, $4)
         `, [msg.userId, 'お問い合わせへの回答', `「${msg.topic}」についての回答が届きました: ${reply}`, 'info']);
     }
@@ -547,10 +547,10 @@ app.get('/api/admin/submissions', async (req, res) => {
     const usePagination = page !== undefined || limit !== undefined || search !== undefined;
     
     if (!usePagination) {
-        const result = await pool.query('SELECT * FROM submitted_questions WHERE status = $1 ORDER BY createdAt DESC', ['pending']);
+        const result = await pool.query('SELECT * FROM g_kentei_submitted_questions WHERE status = $1 ORDER BY createdAt DESC', ['pending']);
         return res.json(result.rows);
     }
-    const result = await getPaginatedData('submitted_questions', req, ['category', 'question']);
+    const result = await getPaginatedData('g_kentei_submitted_questions', req, ['category', 'question']);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -560,16 +560,16 @@ app.get('/api/admin/submissions', async (req, res) => {
 app.post('/api/admin/submissions/:id/approve', async (req, res) => {
   const { id } = req.params;
   try {
-    const subRes = await pool.query('SELECT * FROM submitted_questions WHERE id = $1', [id]);
+    const subRes = await pool.query('SELECT * FROM g_kentei_submitted_questions WHERE id = $1', [id]);
     const submission = subRes.rows[0];
     if (!submission) return res.status(404).json({ error: 'Submission not found' });
 
     await pool.query(`
-      INSERT INTO questions (category, question, options, correctAnswer, explanation, source)
+      INSERT INTO g_kentei_questions (category, question, options, correctAnswer, explanation, source)
       VALUES ($1, $2, $3, $4, $5, $6)
     `, [submission.category, submission.question, submission.options, submission.correctAnswer, submission.explanation, 'user_contribution']);
 
-    await pool.query('UPDATE submitted_questions SET status = $1 WHERE id = $2', ['approved', id]);
+    await pool.query('UPDATE g_kentei_submitted_questions SET status = $1 WHERE id = $2', ['approved', id]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -579,7 +579,7 @@ app.post('/api/admin/submissions/:id/approve', async (req, res) => {
 app.delete('/api/admin/submissions/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    await pool.query('UPDATE submitted_questions SET status = $1 WHERE id = $2', ['rejected', id]);
+    await pool.query('UPDATE g_kentei_submitted_questions SET status = $1 WHERE id = $2', ['rejected', id]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -588,7 +588,7 @@ app.delete('/api/admin/submissions/:id', async (req, res) => {
 
 app.get('/api/approved-questions', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM submitted_questions WHERE status = $1', ['approved']);
+    const result = await pool.query('SELECT * FROM g_kentei_submitted_questions WHERE status = $1', ['approved']);
     const questions = result.rows.map(q => ({
         id: 10000 + q.id, 
         category: q.category,
@@ -609,10 +609,10 @@ app.get('/api/users', async (req, res) => {
         const usePagination = page !== undefined || limit !== undefined || search !== undefined;
         
         if (!usePagination) {
-            const result = await pool.query('SELECT * FROM users');
+            const result = await pool.query('SELECT * FROM g_kentei_users');
             return res.json(result.rows);
         }
-        const result = await getPaginatedData('users', req, ['userId', 'nickname', 'role']);
+        const result = await getPaginatedData('g_kentei_users', req, ['userId', 'nickname', 'role']);
         res.json(result);
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -621,7 +621,7 @@ app.get('/api/users', async (req, res) => {
 
 app.get('/api/users/:key', async (req, res) => {
   const { key } = req.params;
-  const result = await pool.query('SELECT * FROM users WHERE LOWER(userId) = LOWER($1)', [key]);
+  const result = await pool.query('SELECT * FROM g_kentei_users WHERE LOWER(userId) = LOWER($1)', [key]);
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'User not found' });
   }
@@ -634,8 +634,8 @@ app.post('/api/users', async (req, res) => {
   if (!/^[a-zA-Z0-9._-]+$/.test(userId)) return res.status(400).json({ error: 'ユーザーIDは英数字、ドット(.)、アンダースコア(_)、ハイフン(-)のみ使用できます' });
   
   try {
-    await pool.query('INSERT INTO users (userId, nickname, role) VALUES ($1, $2, $3)', [userId, nickname, role]);
-    const user = await pool.query('SELECT * FROM users WHERE userId = $1', [userId]);
+    await pool.query('INSERT INTO g_kentei_users (userId, nickname, role) VALUES ($1, $2, $3)', [userId, nickname, role]);
+    const user = await pool.query('SELECT * FROM g_kentei_users WHERE userId = $1', [userId]);
     res.json(user.rows[0]);
   } catch (err) {
     if (err.message.includes('unique') || err.code === '23505') {
@@ -655,8 +655,8 @@ app.get('/api/public-chat', async (req, res) => {
                 c.*, 
                 u.nickname, 
                 u.role 
-            FROM public_chat c
-            LEFT JOIN users u ON c.userId = u.userId
+            FROM g_kentei_public_chat c
+            LEFT JOIN g_kentei_users u ON c.userId = u.userId
             ORDER BY c.createdAt DESC
             LIMIT $1
         `, [limit]);
@@ -671,14 +671,14 @@ app.post('/api/public-chat', async (req, res) => {
     if (!userId || !message) return res.status(400).json({ error: 'Missing fields' });
     
     try {
-        const insertRes = await pool.query('INSERT INTO public_chat (userId, message, replyTo) VALUES ($1, $2, $3) RETURNING id', [userId, message, replyTo || null]);
+        const insertRes = await pool.query('INSERT INTO g_kentei_public_chat (userId, message, replyTo) VALUES ($1, $2, $3) RETURNING id', [userId, message, replyTo || null]);
         const newMsg = await pool.query(`
             SELECT 
                 c.*, 
                 u.nickname, 
                 u.role 
-            FROM public_chat c
-            LEFT JOIN users u ON c.userId = u.userId
+            FROM g_kentei_public_chat c
+            LEFT JOIN g_kentei_users u ON c.userId = u.userId
             WHERE c.id = $1
         `, [insertRes.rows[0].id]);
         res.json(newMsg.rows[0]);
@@ -692,13 +692,13 @@ app.delete('/api/public-chat/:id', async (req, res) => {
     const { id } = req.params;
 
     try {
-        const userRes = await pool.query('SELECT role FROM users WHERE userId = $1', [userId]);
+        const userRes = await pool.query('SELECT role FROM g_kentei_users WHERE userId = $1', [userId]);
         const user = userRes.rows[0];
         if (!user || user.role !== 'admin') {
             return res.status(403).json({ error: 'Unauthorized: Admin access required' });
         }
 
-        const deleteRes = await pool.query('DELETE FROM public_chat WHERE id = $1', [id]);
+        const deleteRes = await pool.query('DELETE FROM g_kentei_public_chat WHERE id = $1', [id]);
         if (deleteRes.rowCount > 0) {
             console.log(`[Neural Chat] Message ${id} deleted by Admin ${userId}`);
             res.json({ success: true });
@@ -714,7 +714,7 @@ app.patch('/api/admin/users/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   try {
-    await pool.query('UPDATE users SET status = $1 WHERE userId = $2', [status, id]);
+    await pool.query('UPDATE g_kentei_users SET status = $1 WHERE userId = $2', [status, id]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -749,16 +749,16 @@ app.get('/api/notifications', async (req, res) => {
     const usePagination = page !== undefined || limit !== undefined;
     
     if (!usePagination) {
-        const query = `SELECT * FROM notifications ${whereClause} ORDER BY ${safeSortBy} ${safeOrder}`;
+        const query = `SELECT * FROM g_kentei_notifications ${whereClause} ORDER BY ${safeSortBy} ${safeOrder}`;
         const result = await pool.query(query, params);
         return res.json(result.rows);
     }
     
     const offset = (parseInt(page || 1) - 1) * parseInt(limit || 10);
-    const countRes = await pool.query(`SELECT count(*) as total FROM notifications ${whereClause}`, params);
+    const countRes = await pool.query(`SELECT count(*) as total FROM g_kentei_notifications ${whereClause}`, params);
     const total = parseInt(countRes.rows[0].total);
 
-    const dataRes = await pool.query(`SELECT * FROM notifications ${whereClause} ORDER BY ${safeSortBy} ${safeOrder} LIMIT $${paramIndex++} OFFSET $${paramIndex++}`, [...params, parseInt(limit || 10), offset]);
+    const dataRes = await pool.query(`SELECT * FROM g_kentei_notifications ${whereClause} ORDER BY ${safeSortBy} ${safeOrder} LIMIT $${paramIndex++} OFFSET $${paramIndex++}`, [...params, parseInt(limit || 10), offset]);
 
     res.json({ data: dataRes.rows, pagination: { total, page: parseInt(page || 1), limit: parseInt(limit || 10), pages: Math.ceil(total / parseInt(limit || 10)) } });
   } catch (err) {
@@ -768,7 +768,7 @@ app.get('/api/notifications', async (req, res) => {
 
 app.get('/api/admin/todos', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM todos ORDER BY status DESC, createdAt DESC');
+        const result = await pool.query('SELECT * FROM g_kentei_todos ORDER BY status DESC, createdAt DESC');
         res.json(result.rows);
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -778,7 +778,7 @@ app.get('/api/admin/todos', async (req, res) => {
 app.post('/api/admin/todos', async (req, res) => {
     const { task, priority, category } = req.body;
     try {
-        const result = await pool.query('INSERT INTO todos (task, priority, category) VALUES ($1, $2, $3) RETURNING *', [task, priority || 'medium', category || 'general']);
+        const result = await pool.query('INSERT INTO g_kentei_todos (task, priority, category) VALUES ($1, $2, $3) RETURNING *', [task, priority || 'medium', category || 'general']);
         res.json(result.rows[0]);
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -789,9 +789,9 @@ app.patch('/api/admin/todos/:id', async (req, res) => {
     const { status, task, priority } = req.body;
     try {
         if (status) {
-            await pool.query('UPDATE todos SET status = $1 WHERE id = $2', [status, req.params.id]);
+            await pool.query('UPDATE g_kentei_todos SET status = $1 WHERE id = $2', [status, req.params.id]);
         } else if (task) {
-            await pool.query('UPDATE todos SET task = $1, priority = $2 WHERE id = $3', [task, priority, req.params.id]);
+            await pool.query('UPDATE g_kentei_todos SET task = $1, priority = $2 WHERE id = $3', [task, priority, req.params.id]);
         }
         res.json({ success: true });
     } catch (e) {
@@ -801,7 +801,7 @@ app.patch('/api/admin/todos/:id', async (req, res) => {
 
 app.delete('/api/admin/todos/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM todos WHERE id = $1', [req.params.id]);
+        await pool.query('DELETE FROM g_kentei_todos WHERE id = $1', [req.params.id]);
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -811,7 +811,7 @@ app.delete('/api/admin/todos/:id', async (req, res) => {
 app.post('/api/admin/notifications', async (req, res) => {
   const { userId, title, content, type } = req.body;
   try {
-    await pool.query('INSERT INTO notifications (userId, title, content, type) VALUES ($1, $2, $3, $4)', [userId || null, title, content, type || 'info']);
+    await pool.query('INSERT INTO g_kentei_notifications (userId, title, content, type) VALUES ($1, $2, $3, $4)', [userId || null, title, content, type || 'info']);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -820,7 +820,7 @@ app.post('/api/admin/notifications', async (req, res) => {
 
 app.patch('/api/notifications/:id/read', async (req, res) => {
     try {
-        await pool.query('UPDATE notifications SET isRead = 1 WHERE id = $1', [req.params.id]);
+        await pool.query('UPDATE g_kentei_notifications SET isRead = 1 WHERE id = $1', [req.params.id]);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -830,7 +830,7 @@ app.patch('/api/notifications/:id/read', async (req, res) => {
 app.get('/api/attempts', async (req, res) => {
   try {
     const { userId, sort } = req.query;
-    let sql = 'SELECT * FROM attempts';
+    let sql = 'SELECT * FROM g_kentei_attempts';
     let params = [];
     let paramIndex = 1;
     
@@ -862,7 +862,7 @@ app.post('/api/attempts', async (req, res) => {
   const { userId, date, score, category, totalQuestions, wrongQuestionIds, userAnswers } = req.body;
   try {
     const result = await pool.query(`
-        INSERT INTO attempts (userId, date, score, category, totalQuestions, wrongQuestionIds, userAnswers) 
+        INSERT INTO g_kentei_attempts (userId, date, score, category, totalQuestions, wrongQuestionIds, userAnswers) 
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id
     `, [userId, date, score, category, totalQuestions, JSON.stringify(wrongQuestionIds), JSON.stringify(userAnswers)]);
@@ -875,7 +875,7 @@ app.post('/api/attempts', async (req, res) => {
 app.delete('/api/attempts', async (req, res) => {
   const { userId } = req.query;
   try {
-    await pool.query('DELETE FROM attempts WHERE userId = $1', [userId]);
+    await pool.query('DELETE FROM g_kentei_attempts WHERE userId = $1', [userId]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -886,14 +886,14 @@ app.get('/api/sessions', async (req, res) => {
   const { userId, category } = req.query;
   try {
     if (category) {
-        const result = await pool.query('SELECT * FROM sessions WHERE userId = $1 AND category = $2', [userId, category]);
+        const result = await pool.query('SELECT * FROM g_kentei_sessions WHERE userId = $1 AND category = $2', [userId, category]);
         const session = result.rows[0];
         if (session) {
             session.answers = typeof session.answers === 'string' ? JSON.parse(session.answers || '[]') : session.answers;
         }
         res.json(session || null);
     } else {
-        const result = await pool.query('SELECT * FROM sessions WHERE userId = $1', [userId]);
+        const result = await pool.query('SELECT * FROM g_kentei_sessions WHERE userId = $1', [userId]);
         const sessions = result.rows.map(s => {
             s.answers = typeof s.answers === 'string' ? JSON.parse(s.answers || '[]') : s.answers;
             return s;
@@ -909,7 +909,7 @@ app.post('/api/sessions', async (req, res) => {
   const { userId, category, currentQuestionIndex, answers } = req.body;
   try {
     await pool.query(`
-        INSERT INTO sessions (userId, category, currentQuestionIndex, answers, lastUpdated) 
+        INSERT INTO g_kentei_sessions (userId, category, currentQuestionIndex, answers, lastUpdated) 
         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
         ON CONFLICT (userId, category) DO UPDATE SET 
             currentQuestionIndex = EXCLUDED.currentQuestionIndex, 
@@ -927,9 +927,9 @@ app.patch('/api/sessions/:id', async (req, res) => {
   const { currentQuestionIndex, answers } = req.body;
   try {
     if (answers) {
-        await pool.query('UPDATE sessions SET currentQuestionIndex = $1, answers = $2, lastUpdated = CURRENT_TIMESTAMP WHERE userId = $3 AND category = $4', [currentQuestionIndex, JSON.stringify(answers), userId, category]);
+        await pool.query('UPDATE g_kentei_sessions SET currentQuestionIndex = $1, answers = $2, lastUpdated = CURRENT_TIMESTAMP WHERE userId = $3 AND category = $4', [currentQuestionIndex, JSON.stringify(answers), userId, category]);
     } else {
-        await pool.query('UPDATE sessions SET currentQuestionIndex = $1, lastUpdated = CURRENT_TIMESTAMP WHERE userId = $2 AND category = $3', [currentQuestionIndex, userId, category]);
+        await pool.query('UPDATE g_kentei_sessions SET currentQuestionIndex = $1, lastUpdated = CURRENT_TIMESTAMP WHERE userId = $2 AND category = $3', [currentQuestionIndex, userId, category]);
     }
     res.json({ success: true });
   } catch (err) {
@@ -940,7 +940,7 @@ app.patch('/api/sessions/:id', async (req, res) => {
 app.delete('/api/sessions/:id', async (req, res) => {
   const [userId, category] = req.params.id.split(',');
   try {
-    await pool.query('DELETE FROM sessions WHERE userId = $1 AND category = $2', [userId, category]);
+    await pool.query('DELETE FROM g_kentei_sessions WHERE userId = $1 AND category = $2', [userId, category]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -950,7 +950,7 @@ app.delete('/api/sessions/:id', async (req, res) => {
 app.delete('/api/sessions', async (req, res) => {
   const { userId } = req.query;
   try {
-    await pool.query('DELETE FROM sessions WHERE userId = $1', [userId]);
+    await pool.query('DELETE FROM g_kentei_sessions WHERE userId = $1', [userId]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -959,10 +959,10 @@ app.delete('/api/sessions', async (req, res) => {
 
 app.get('/api/diagnostics', async (req, res) => {
   try {
-    const usersCount = await pool.query('SELECT count(*) as count FROM users');
-    const attemptsCount = await pool.query('SELECT count(*) as count FROM attempts');
-    const sessionsCount = await pool.query('SELECT count(*) as count FROM sessions');
-    const recent = await pool.query('SELECT * FROM attempts ORDER BY date DESC LIMIT 5');
+    const usersCount = await pool.query('SELECT count(*) as count FROM g_kentei_users');
+    const attemptsCount = await pool.query('SELECT count(*) as count FROM g_kentei_attempts');
+    const sessionsCount = await pool.query('SELECT count(*) as count FROM g_kentei_sessions');
+    const recent = await pool.query('SELECT * FROM g_kentei_attempts ORDER BY date DESC LIMIT 5');
     res.json({
         counts: { 
             users: parseInt(usersCount.rows[0].count), 
@@ -979,7 +979,7 @@ app.get('/api/diagnostics', async (req, res) => {
 
 app.delete('/api/users/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM users WHERE userId = $1', [req.params.id]);
+    await pool.query('DELETE FROM g_kentei_users WHERE userId = $1', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
