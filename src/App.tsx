@@ -354,11 +354,20 @@ export default function App() {
                 />
               )}
               {view === 'study' && <StudyMode onStartPractice={async (cat) => {
-                const result = await startQuiz(cat);
-                if (result.success) {
-                    setView('quiz');
-                } else {
-                    showToast(result.error || 'Failed to initialize sector', 'error');
+                console.log('[App] Starting quiz for category:', cat);
+                try {
+                  const result = await startQuiz(cat);
+                  console.log('[App] Quiz start result:', result);
+                  if (result.success) {
+                      setView('quiz');
+                  } else {
+                      const errorMsg = result.error || 'セクタの初期化に失敗しました';
+                      console.error('[App] Quiz start failed:', errorMsg);
+                      showToast(errorMsg, 'error');
+                  }
+                } catch (error) {
+                  console.error('[App] Exception during quiz start:', error);
+                  showToast('予期しないエラーが発生しました', 'error');
                 }
               }} />}
               {view === 'history' && <HistoryView />}
