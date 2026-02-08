@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlusCircle, CheckCircle, AlertCircle, Save, Eye, Layout, Send, RefreshCw, ChevronLeft } from 'lucide-react';
-import { useLanguageStore } from '../store/useLanguageStore';
 import clsx from 'clsx';
 
 interface Category {
@@ -15,7 +14,6 @@ interface Category {
 }
 
 export const SubmitQuestionView: React.FC = () => {
-    const { t } = useLanguageStore();
     const [categories, setCategories] = useState<Category[]>([]);
     const [formData, setFormData] = useState({
         category: '',
@@ -79,7 +77,7 @@ export const SubmitQuestionView: React.FC = () => {
 
     const resetForm = () => {
         setFormData({
-            category: CATEGORIES[0].realId,
+            category: categories.length > 0 ? categories[0].id : '',
             question: '',
             options: ['', '', '', ''],
             correctAnswer: 0,
