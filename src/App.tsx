@@ -21,6 +21,8 @@ import { Cpu, Database, Clock, BarChart3, Layout as LayoutIcon, Github, Shield, 
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useDashboardStore } from './store/useDashboardStore';
+import { useSubscriptionStore } from './store/useSubscriptionStore';
+import { UpgradeModal } from './components/UpgradeModal';
 
 export default function App() {
   const { t } = useLanguageStore();
@@ -29,6 +31,8 @@ export default function App() {
   const [isBooting, setIsBooting] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | null }>({ message: '', type: null });
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const { status } = useSubscriptionStore();
 
 
   const { isAuthenticated, isAdmin, logout, currentUser } = useAuthStore();
@@ -42,12 +46,12 @@ export default function App() {
       const notifUrl = currentUser ? `/api/notifications?userId=${currentUser.userId}` : '/api/notifications';
       const res = await fetch(notifUrl);
       const data = await res.json();
-      const normalized = normalizeKeys(data);
-      const unread = normalized.filter((n: any) => !n.isRead);
+      const normalized = normalizeKeys(data) as Array<{ isRead: boolean; type: string; title: string }>;
+      const unread = normalized.filter((n) => !n.isRead);
       setUnreadNotifications(unread.length);
       
       // If there are unread urgent notifications, notify the user
-      const urgent = unread.find((n: any) => n.type === 'warning' || n.type === 'error');
+      const urgent = unread.find((n) => n.type === 'warning' || n.type === 'error');
       if (urgent) {
         showToast(`未読の重要通知があります: ${urgent.title}`, 'error');
       }
@@ -307,6 +311,17 @@ export default function App() {
                 <span className="hidden xs:block text-[7px] font-mono text-accent uppercase tracking-[0.2em]">{currentUser.role === 'admin' ? t('admin') : 'USER'} PROTOCOL</span>
               </div>
             )}
+            
+            {status === 'free' && (
+            <button 
+                onClick={() => setUpgradeModalOpen(true)}
+                className="bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-indigo-500/30 transition-all flex items-center gap-2"
+            >
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                Upgrade
+            </button>
+            )}
+
             <motion.div 
               onClick={handleLogout}
               className="p-2 text-slate-500 hover:text-red-500 transition-colors group relative"
@@ -442,7 +457,8 @@ export default function App() {
             </button>
           ))}
         </nav>
-
+        
+        <UpgradeModal isOpen={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} />
       </div>
     </Layout>
   );
