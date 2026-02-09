@@ -7,12 +7,16 @@ import { normalizeKeys } from '../utils/normalize';
 // Helper to fetch all questions
 const fetchAllQuestions = async (): Promise<Question[]> => {
     try {
-        const res = await fetch('/api/questions');
-        if (!res.ok) throw new Error('Failed to fetch questions');
+        const API_URL = import.meta.env.VITE_NEXUS_API_URL || 'http://localhost:3000';
+        const res = await fetch(`${API_URL}/api/g-kentei/questions`);
+        if (!res.ok) {
+            console.warn(`API Error: ${res.status} ${res.statusText}`);
+            throw new Error('Failed to fetch questions');
+        }
         const data = await res.json();
         return normalizeKeys(data);
     } catch (error) {
-        console.error("Failed to load questions from DB", error);
+        console.error("Failed to load questions from Nexus Prime", error);
         return [];
     }
 };
@@ -25,6 +29,7 @@ interface ExtendedQuizState extends QuizState {
     endQuiz: () => void;
     discardSession: () => void;
     getActiveSessions: () => Promise<any[]>;
+    resetQuiz: () => void; // Added based on lint feedback
 }
 
 export const useQuizStore = create<ExtendedQuizState>((set, get) => ({

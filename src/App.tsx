@@ -26,6 +26,14 @@ import { UpgradeModal } from './components/UpgradeModal';
 
 export default function App() {
   const { t } = useLanguageStore();
+  const { isAuthenticated, isAdmin, logout, currentUser } = useAuthStore();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+        useSubscriptionStore.getState().setup(currentUser);
+    }
+  }, [isAuthenticated, currentUser]);
+
   const [view, setView] = useState<'dashboard' | 'study' | 'history' | 'quiz' | 'stats' | 'admin' | 'contact' | 'submit' | 'notifications' | 'flashcards'>('dashboard');
   const scrollContainerRef = useRef<HTMLElement>(null);
   const [isBooting, setIsBooting] = useState(true);
@@ -33,9 +41,6 @@ export default function App() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const { status } = useSubscriptionStore();
-
-
-  const { isAuthenticated, isAdmin, logout, currentUser } = useAuthStore();
   const startQuiz = useQuizStore((state) => state.startQuiz);
   const isActive = useQuizStore((state) => state.isActive);
   const endQuiz = useQuizStore((state) => state.endQuiz);
