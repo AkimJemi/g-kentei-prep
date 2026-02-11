@@ -19,31 +19,68 @@ interface StudyModeProps {
   onStartPractice: (category: string) => void;
 }
 
+import { useAuthStore } from '../store/useAuthStore';
+
+// ... (existing imports)
+
+import { normalizeKeys } from '../utils/normalize';
+
+// ... (existing imports)
+
 export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
   const { t } = useLanguageStore();
+  const currentUser = useAuthStore((state) => state.currentUser);
   const [totalQuestions, setTotalQuestions] = React.useState(0);
   const [categories, setCategories] = React.useState<Category[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [progress, setProgress] = React.useState<Record<string, { total: number, solved: number, failed: number, remaining: number }>>({});
 
   React.useEffect(() => {
     const fetchData = async () => {
         try {
-            const [qRes, cRes] = await Promise.all([
-                fetch('/api/questions'),
-                fetch('/api/categories')
-            ]);
-            const qData = await qRes.json();
-            const cData = await cRes.json();
-            setTotalQuestions(qData.length);
-            setCategories(cData);
-        } catch (error) {
+            const userId = currentUser?.userId;
+            const query = userId ? `?userId=${userId}` : '';
+            const t = Date.now();
+            const endpoints = [
+                fetch(`/api/questions${query}${query ? '&' : '?'}t=${t}`),
+                fetch(`/api/categories?t=${t}`)
+            ];
+            
+            if (userId) {
+                endpoints.push(fetch(`/api/user-progress/${userId}?t=${t}`));
+            }
+
+            const results = await Promise.all(endpoints);
+            
+            if (!results[0].ok || !results[1].ok) {
+                throw new Error('Failed to fetch data');
+            }
+
+            const qData = await results[0].json();
+            const cData = await results[1].json();
+            
+            const questions = Array.isArray(qData) ? qData : (qData.data || []);
+            // Normalize categories to handle DB casing issues
+            let categoriesRaw = Array.isArray(cData) ? cData : (cData.data || []);
+            const categories = normalizeKeys(categoriesRaw);
+
+            setTotalQuestions(questions.length);
+            setCategories(categories);
+
+            if (userId && results[2] && results[2].ok) {
+                const pData = await results[2].json();
+                setProgress(pData);
+            }
+        } catch (error: any) {
             console.error("Failed to load study data", error);
+            setError(error.message || 'Unknown error');
         } finally {
             setLoading(false);
         }
     };
     fetchData();
-  }, []);
+  }, [currentUser]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -91,6 +128,15 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
       variants={containerVariants}
       className="max-w-6xl mx-auto px-4 md:px-6 space-y-8 md:space-y-12 pb-24"
     >
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/50 p-4 rounded-xl text-red-500 mb-8">
+            <h3 className="font-bold">Error Loading Data</h3>
+            <p>{error}</p>
+        </div>
+      )}
+      
+
+
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/[0.04] pb-12">
         <div className="space-y-4">
             <button 
@@ -131,12 +177,13 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
           const CategoryIcon = ICON_MAP[cat.icon] || HelpCircle;
           const shortcuts = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
           const shortcut = shortcuts[idx] || (idx + 1).toString();
+          const p = progress[cat.id] || { total: 0, solved: 0, failed: 0, remaining: 0 };
  
           return (
             <motion.button
               key={cat.id}
               variants={itemVariants}
-              onClick={() => onStartPractice(cat.id)}
+              onClick={onStartPractice.bind(null, cat.id)}
               className="group relative p-4 md:p-8 bg-secondary/10 hover:bg-secondary/20 border border-white/[0.04] rounded-2xl md:rounded-3xl text-left transition-all hover:border-accent/30 shadow-xl overflow-hidden active:scale-95 flex flex-col h-full"
             >
               <div className="absolute top-4 right-6 text-[10px] font-black text-slate-600/60 group-hover:text-slate-400 transition-colors hidden xl:block">
@@ -158,12 +205,20 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
                 </div>
               </div>
  
-              <div className="flex items-center justify-between mt-auto relative z-10 pt-2">
-                  <div className="flex items-center gap-2 text-[7px] md:text-[10px] font-bold text-slate-400 bg-slate-800/50 px-2 md:px-3 py-0.5 md:py-1 rounded-full truncate mr-2">
-                    <span className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-accent animate-pulse shrink-0" />
-                    <span className="truncate">{t('optimized')} セクタ</span>
+              {/* Progress Stats */}
+              <div className="grid grid-cols-2 gap-2 mt-auto relative z-10 pt-4 border-t border-white/[0.04]">
+                  <div className="bg-black/20 rounded-xl p-2 border border-white/[0.02]">
+                      <div className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Solved</div>
+                      <div className="text-[10px] font-mono font-bold text-emerald-400">{p.solved} / {p.total}</div>
                   </div>
-                  <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-700 group-hover:text-accent group-hover:translate-x-1 transition-all shrink-0" />
+                  <div className="bg-black/20 rounded-xl p-2 border border-white/[0.02]">
+                      <div className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Failed</div>
+                      <div className="text-[10px] font-mono font-bold text-red-400">{p.failed}</div>
+                  </div>
+              </div>
+ 
+              <div className="absolute bottom-4 right-4 text-xs font-black italic tracking-tighter text-slate-700 opacity-20 group-hover:opacity-40 transition-opacity">
+                 {shortcut}
               </div>
             </motion.button>
           );

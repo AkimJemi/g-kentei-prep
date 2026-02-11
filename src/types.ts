@@ -7,11 +7,13 @@ export interface Question {
     options: string[];
     correctAnswer: number;
     explanation: string;
+    optionExplanations?: string[];
     translations?: {
         [key: string]: {
             question: string;
             options: string[];
             explanation: string;
+            optionExplanations?: string[];
             category?: string;
         }
     };

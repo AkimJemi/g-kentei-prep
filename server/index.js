@@ -108,7 +108,8 @@ const initDB = async () => {
         explanation TEXT,
         translations TEXT,
         source TEXT DEFAULT 'system',
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        optionExplanations TEXT
       );
       
       CREATE TABLE IF NOT EXISTS g_kentei_public_chat (
@@ -135,22 +136,28 @@ const initDB = async () => {
     if (parseInt(catRes.rows[0].count) === 0) {
         console.log('[Neural DB] Seeding Initial Categories...');
         const initialCategories = [
-            { id: 'AI Fundamentals', title: 'AIの基礎', icon: 'Brain', color: 'text-blue-400', bg: 'bg-blue-400/10', description: 'AIの定義、歴史、基礎知識を学びます。' },
-            { id: 'AI Trends', title: 'AIをめぐる動向', icon: 'Cpu', color: 'text-indigo-400', bg: 'bg-indigo-400/10', description: '最新のAI技術開発と社会動向を確認します。' },
-            { id: 'Machine Learning', title: '機械学習の概要', icon: 'Database', color: 'text-emerald-400', bg: 'bg-emerald-400/10', description: '学習アルゴリズムとモデル構築の基礎を学習します。' },
-            { id: 'Deep Learning Basics', title: 'ディープラーニングの概要', icon: 'Zap', color: 'text-amber-400', bg: 'bg-amber-400/10', description: 'ニューラルネットワークの基礎理論を習得します。' },
-            { id: 'Deep Learning Tech', title: 'ディープラーニングの手法', icon: 'Layers', color: 'text-rose-400', bg: 'bg-rose-400/10', description: 'CNN, RNN等の具体的なニューラルネット手法を学びます。' },
-            { id: 'AI Applications', title: 'ディープラーニングの応用例', icon: 'Globe', color: 'text-sky-400', bg: 'bg-sky-400/10', description: '画像認識、自然言語処理等の応用事例を確認します。' },
-            { id: 'Social Implementation', title: 'AIの社会実装に向けて', icon: 'Shield', color: 'text-purple-400', bg: 'bg-purple-400/10', description: 'ビジネス実装、プロジェクト管理、倫理について学びます。' },
-            { id: 'Math & Statistics', title: '数理・統計', icon: 'Terminal', color: 'text-slate-400', bg: 'bg-slate-400/10', description: 'AI理解に必要な数学的基礎を固めます。' },
-            { id: 'Law & Contracts', title: '法律・契約', icon: 'BookOpen', color: 'text-teal-400', bg: 'bg-teal-400/10', description: '知的財産権、著作権、個人情報保護法等を学びます。' },
-            { id: 'Ethics & Governance', title: '倫理・ガバナンス', icon: 'Award', color: 'text-orange-400', bg: 'bg-orange-400/10', description: 'AI倫理指針とリスクガバナンスを学習します。' }
+            { id: 'ai_basics', title: '人工知能（AI）とは', icon: 'Brain', color: 'text-blue-400', bg: 'bg-blue-400/10', description: 'AIの定義、歴史、基礎知識を学びます。' },
+            { id: 'ai_trends', title: '人工知能をめぐる動向', icon: 'Cpu', color: 'text-indigo-400', bg: 'bg-indigo-400/10', description: '最新のAI技術開発と社会動向を確認します。' },
+            { id: 'ml_methods', title: '機械学習の具体的手法', icon: 'Database', color: 'text-emerald-400', bg: 'bg-emerald-400/10', description: '学習アルゴリズムとモデル構築の基礎を学習します。' },
+            { id: 'dl_overview', title: 'ディープラーニングの概要', icon: 'Zap', color: 'text-amber-400', bg: 'bg-amber-400/10', description: 'ニューラルネットワークの基礎理論を習得します。' },
+            { id: 'dl_methods', title: 'ディープラーニングの手法', icon: 'Layers', color: 'text-rose-400', bg: 'bg-rose-400/10', description: 'CNN, RNN等の具体的なニューラルネット手法を学びます。' },
+            { id: 'dl_implementation', title: 'ディープラーニングの社会実装に向けて', icon: 'Shield', color: 'text-purple-400', bg: 'bg-purple-400/10', description: 'ビジネス実装、プロジェクト管理、倫理について学びます。' },
+            { id: 'math_stats', title: '数理・統計', icon: 'Terminal', color: 'text-slate-400', bg: 'bg-slate-400/10', description: 'AI理解に必要な数学的基礎を固めます。' },
+            { id: 'law_contracts', title: '法律・契約', icon: 'BookOpen', color: 'text-teal-400', bg: 'bg-teal-400/10', description: '知的財産権、著作権、個人情報保護法等を学びます。' },
+            { id: 'ethics_governance', title: '倫理・ガバナンス', icon: 'Award', color: 'text-orange-400', bg: 'bg-orange-400/10', description: 'AI倫理指針とリスクガバナンスを学習します。' }
         ];
 
         for (const [idx, cat] of initialCategories.entries()) {
             await client.query(`
                 INSERT INTO g_kentei_categories (id, title, icon, color, bg, description, displayOrder)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                ON CONFLICT (id) DO UPDATE SET
+                    title = EXCLUDED.title,
+                    icon = EXCLUDED.icon,
+                    color = EXCLUDED.color,
+                    bg = EXCLUDED.bg,
+                    description = EXCLUDED.description,
+                    displayOrder = EXCLUDED.displayOrder
             `, [cat.id, cat.title, cat.icon, cat.color, cat.bg, cat.description, idx]);
         }
         console.log('[Neural DB] Categories Seeded.');
@@ -272,7 +279,7 @@ const getPaginatedData = async (tableName, req, searchColumns = []) => {
 // Category APIs
 app.get('/api/categories', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM g_kentei_categories ORDER BY displayOrder ASC');
+        const result = await pool.query('SELECT * FROM g_kentei_categories ORDER BY displayorder ASC');
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -283,7 +290,7 @@ app.post('/api/admin/categories', async (req, res) => {
     const { id, title, icon, color, bg, description, displayOrder } = req.body;
     try {
         await pool.query(`
-            INSERT INTO g_kentei_categories (id, title, icon, color, bg, description, displayOrder)
+            INSERT INTO g_kentei_categories (id, title, icon, color, bg, description, displayorder)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, [id, title, icon, color, bg, description, displayOrder || 0]);
         res.json({ success: true });
@@ -297,7 +304,7 @@ app.put('/api/admin/categories/:id', async (req, res) => {
     try {
         await pool.query(`
             UPDATE g_kentei_categories 
-            SET title = $1, icon = $2, color = $3, bg = $4, description = $5, displayOrder = $6
+            SET title = $1, icon = $2, color = $3, bg = $4, description = $5, displayorder = $6
             WHERE id = $7
         `, [title, icon, color, bg, description, displayOrder, req.params.id]);
         res.json({ success: true });
@@ -338,7 +345,38 @@ app.get('/api/admin/stats', async (req, res) => {
 // Routes
 app.get('/api/questions', async (req, res) => {
   try {
-    const { page, limit, search, category } = req.query;
+    const { page, limit, search, category, userId } = req.query;
+    
+    // Feature Gating Logic
+    if (userId) {
+        const isAdminRes = await pool.query('SELECT role FROM g_kentei_users WHERE userId = $1', [userId]);
+        const isAdmin = isAdminRes.rows[0]?.role === 'admin';
+        
+        if (!isAdmin) {
+            // Check Subscription
+            const subRes = await pool.query('SELECT status FROM subscriptions WHERE userId = $1 AND (projectScope = $2 OR projectScope = $3) AND status = $4', [userId, 'g-kentei', 'all', 'active']);
+            const hasActiveSub = subRes.rows.length > 0;
+            
+            if (!hasActiveSub) {
+                // Count attempts today
+                const attemptsRes = await pool.query(`
+                    SELECT count(*) as count 
+                    FROM g_kentei_attempts 
+                    WHERE userId = $1 AND date >= CURRENT_DATE
+                `, [userId]);
+                const dailyAttempts = parseInt(attemptsRes.rows[0].count);
+                
+                if (dailyAttempts >= 3) {
+                    return res.status(403).json({ 
+                        error: 'Daily limit reached', 
+                        limitReached: true,
+                        message: '1日の無料学習制限（3回）に達しました。プレミアムプランで無制限に学習しましょう！' 
+                    });
+                }
+            }
+        }
+    }
+
     const usePagination = page !== undefined || limit !== undefined || search !== undefined || category !== undefined;
     
     if (!usePagination) {
@@ -346,6 +384,7 @@ app.get('/api/questions', async (req, res) => {
         const questions = result.rows.map(q => ({
             ...q,
             options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
+            optionExplanations: q.optionexplanations ? (typeof q.optionexplanations === 'string' ? JSON.parse(q.optionexplanations) : q.optionexplanations) : undefined,
             translations: q.translations ? (typeof q.translations === 'string' ? JSON.parse(q.translations) : q.translations) : undefined
         }));
         return res.json(questions);
@@ -355,6 +394,7 @@ app.get('/api/questions', async (req, res) => {
     const formatted = data.map(q => ({
         ...q,
         options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
+        optionExplanations: q.optionexplanations ? (typeof q.optionexplanations === 'string' ? JSON.parse(q.optionexplanations) : q.optionexplanations) : undefined,
         translations: q.translations ? (typeof q.translations === 'string' ? JSON.parse(q.translations) : q.translations) : undefined
     }));
     res.json({ data: formatted, pagination });
@@ -603,6 +643,17 @@ app.get('/api/approved-questions', async (req, res) => {
   }
 });
 
+const formatUser = (user) => {
+  if (!user) return null;
+  return {
+    userId: user.userid,
+    nickname: user.nickname,
+    role: user.role,
+    status: user.status,
+    joinedAt: user.joinedat
+  };
+};
+
 app.get('/api/users', async (req, res) => {
     try {
         const { page, limit, search } = req.query;
@@ -610,10 +661,10 @@ app.get('/api/users', async (req, res) => {
         
         if (!usePagination) {
             const result = await pool.query('SELECT * FROM g_kentei_users');
-            return res.json(result.rows);
+            return res.json(result.rows.map(formatUser));
         }
-        const result = await getPaginatedData('g_kentei_users', req, ['userId', 'nickname', 'role']);
-        res.json(result);
+        const { data, pagination } = await getPaginatedData('g_kentei_users', req, ['userId', 'nickname', 'role']);
+        res.json({ data: data.map(formatUser), pagination });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -621,11 +672,15 @@ app.get('/api/users', async (req, res) => {
 
 app.get('/api/users/:key', async (req, res) => {
   const { key } = req.params;
-  const result = await pool.query('SELECT * FROM g_kentei_users WHERE LOWER(userId) = LOWER($1)', [key]);
-  if (result.rows.length === 0) {
-    return res.status(404).json({ error: 'User not found' });
+  try {
+    const result = await pool.query('SELECT * FROM g_kentei_users WHERE LOWER(userId) = LOWER($1)', [key]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(formatUser(result.rows[0]));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-  res.json(result.rows[0]);
 });
 
 app.post('/api/users', async (req, res) => {
@@ -636,7 +691,7 @@ app.post('/api/users', async (req, res) => {
   try {
     await pool.query('INSERT INTO g_kentei_users (userId, nickname, role) VALUES ($1, $2, $3)', [userId, nickname, role]);
     const user = await pool.query('SELECT * FROM g_kentei_users WHERE userId = $1', [userId]);
-    res.json(user.rows[0]);
+    res.json(formatUser(user.rows[0]));
   } catch (err) {
     if (err.message.includes('unique') || err.code === '23505') {
       res.status(400).json({ error: 'このユーザーIDは既に使用されています' });
@@ -953,6 +1008,58 @@ app.delete('/api/sessions', async (req, res) => {
     await pool.query('DELETE FROM g_kentei_sessions WHERE userId = $1', [userId]);
     res.json({ success: true });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/user-progress/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const qRes = await pool.query('SELECT id, category FROM g_kentei_questions');
+    const questions = qRes.rows;
+    
+    const aRes = await pool.query('SELECT category, wrongQuestionIds, userAnswers FROM g_kentei_attempts WHERE userId = $1', [userId]);
+    const attempts = aRes.rows;
+
+    const solvedMap = new Set();
+    const failedMap = new Set();
+
+    attempts.forEach(a => {
+        const wrongIds = typeof a.wrongQuestionIds === 'string' ? JSON.parse(a.wrongQuestionIds || '[]') : a.wrongQuestionIds;
+        const userAnswers = typeof a.userAnswers === 'string' ? JSON.parse(a.userAnswers || '{}') : a.userAnswers;
+        
+        Object.keys(userAnswers).forEach(qId => {
+            const id = parseInt(qId);
+            if (!wrongIds.includes(id)) {
+                solvedMap.add(id);
+                failedMap.delete(id);
+            } else {
+                if (!solvedMap.has(id)) {
+                    failedMap.add(id);
+                }
+            }
+        });
+    });
+
+    const categoryStats = {};
+    const categoriesRes = await pool.query('SELECT id FROM g_kentei_categories');
+    categoriesRes.rows.forEach(cat => {
+        const catId = cat.id;
+        const catQuestions = questions.filter(q => q.category === catId);
+        const solved = catQuestions.filter(q => solvedMap.has(q.id)).length;
+        const failed = catQuestions.filter(q => failedMap.has(q.id)).length;
+        
+        categoryStats[catId] = {
+            total: catQuestions.length,
+            solved,
+            failed,
+            remaining: catQuestions.length - solved - failed
+        };
+    });
+
+    res.json(categoryStats);
+  } catch (err) {
+    console.error('[Progress API Error]:', err);
     res.status(500).json({ error: err.message });
   }
 });

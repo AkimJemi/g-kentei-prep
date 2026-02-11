@@ -5,19 +5,26 @@ import { useAuthStore } from './useAuthStore';
 import { normalizeKeys } from '../utils/normalize';
 
 // Helper to fetch all questions
-const fetchAllQuestions = async (): Promise<Question[]> => {
+const fetchAllQuestions = async (userId?: string): Promise<{ questions: Question[]; error?: string; limitReached?: boolean }> => {
     try {
-        const API_URL = import.meta.env.VITE_NEXUS_API_URL || 'http://localhost:3000';
-        const res = await fetch(`${API_URL}/api/g-kentei/questions`);
+        const query = userId ? `?userId=${userId}` : '';
+        const res = await fetch(`/api/questions${query}`);
+
+        if (res.status === 403) {
+            const errorData = await res.json();
+            return { questions: [], error: errorData.message, limitReached: true };
+        }
+
         if (!res.ok) {
             console.warn(`API Error: ${res.status} ${res.statusText}`);
             throw new Error('Failed to fetch questions');
         }
         const data = await res.json();
-        return normalizeKeys(data);
+        const questionsArr = Array.isArray(data) ? data : (data.data || []);
+        return { questions: normalizeKeys(questionsArr) };
     } catch (error) {
-        console.error("Failed to load questions from Nexus Prime", error);
-        return [];
+        console.error("Failed to load questions from Neural Link", error);
+        return { questions: [], error: 'Failed to connect to Neural Link' };
     }
 };
 
@@ -42,8 +49,22 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
 
     startQuiz: async (category: string) => {
         try {
-            // Fetch all questions from server (both system and approved user submissions)
-            const allQuestions = await fetchAllQuestions();
+            const authState = useAuthStore.getState();
+            const currentUser = authState.currentUser;
+            const userId = currentUser?.userId || (currentUser as any)?.id;
+
+            if (!userId) return { success: false, error: 'AUTH_ERROR: User session invalid.' };
+
+            // Fetch all questions from server with userId for gating
+            const { questions: allQuestions, error, limitReached } = await fetchAllQuestions(userId);
+
+            if (limitReached) {
+                return { success: false, error: error || 'DAILY_LIMIT_REACHED' };
+            }
+
+            if (error) {
+                return { success: false, error };
+            }
 
             const filtered = category === 'All'
                 ? allQuestions
@@ -53,13 +74,6 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
                 console.warn(`[Neural Store] No questions found for category: ${category}`);
                 return { success: false, error: 'SECTOR_EMPTY: No data available for this category.' };
             }
-
-            // Check for existing session
-            const authState = useAuthStore.getState();
-            const currentUser = authState.currentUser;
-            const userId = currentUser?.userId || (currentUser as any)?.id;
-
-            if (!userId) return { success: false, error: 'AUTH_ERROR: User session invalid.' };
 
             const session = await db.sessions.get({ userId, category });
 
@@ -90,8 +104,10 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
     },
 
     startWeakPointQuiz: async (questionIds: number[]) => {
-        const allQuestions = await fetchAllQuestions();
-        const filtered = allQuestions.filter(q => questionIds.includes(q.id));
+        const authState = useAuthStore.getState();
+        const userId = authState.currentUser?.userId;
+        const result = await fetchAllQuestions(userId);
+        const filtered = result.questions.filter(q => questionIds.includes(q.id));
 
         set({
             questions: filtered,

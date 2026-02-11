@@ -13,6 +13,21 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+const CATEGORY_MAP = {
+  'AI Fundamentals': 'ai_basics',
+  'AI Trends': 'ai_trends',
+  'Machine Learning': 'ml_methods',
+  'Deep Learning Basics': 'dl_overview',
+  'Deep Learning Tech': 'dl_methods',
+  'AI Applications': 'dl_methods',
+  'Social Implementation': 'dl_implementation',
+  'Math & Statistics': 'math_stats',
+  'Law & Contracts': 'law_contracts',
+  'Ethics & Governance': 'ethics_governance',
+  'Applied Intelligence': 'ai_basics',
+  '機械学習の概要': 'ml_methods'
+};
+
 async function importQuestions() {
   console.log('[Import] Starting question import to PostgreSQL...');
   
@@ -29,20 +44,31 @@ async function importQuestions() {
     
     for (const q of questions) {
       try {
+        const normalizedCategory = CATEGORY_MAP[q.category] || q.category;
+        
         await pool.query(`
-          INSERT INTO g_kentei_questions (id, category, question, options, correctAnswer, explanation, translations, source, createdAt)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-          ON CONFLICT (id) DO NOTHING
+          INSERT INTO g_kentei_questions (id, category, question, options, correctAnswer, explanation, translations, source, createdAt, optionExplanations)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          ON CONFLICT (id) DO UPDATE SET
+            category = EXCLUDED.category,
+            question = EXCLUDED.question,
+            options = EXCLUDED.options,
+            correctAnswer = EXCLUDED.correctAnswer,
+            explanation = EXCLUDED.explanation,
+            translations = EXCLUDED.translations,
+            source = EXCLUDED.source,
+            optionExplanations = EXCLUDED.optionExplanations
         `, [
           q.id,
-          q.category,
+          normalizedCategory,
           q.question,
-          q.options,
+          typeof q.options === 'string' ? q.options : JSON.stringify(q.options),
           q.correctAnswer,
           q.explanation || '',
-          q.translations || '{}',
+          typeof q.translations === 'string' ? q.translations : JSON.stringify(q.translations || {}),
           q.source || 'system',
-          q.createdAt || new Date().toISOString()
+          q.createdAt || new Date().toISOString(),
+          typeof q.optionExplanations === 'string' ? q.optionExplanations : JSON.stringify(q.optionExplanations || [])
         ]);
         imported++;
         if (imported % 50 === 0) {

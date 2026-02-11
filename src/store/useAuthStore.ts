@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { db, type User } from '../db/db';
+
+interface User {
+    userId: string;
+    nickname: string;
+    role: 'user' | 'admin';
+    status?: string;
+    joinedAt?: Date;
+}
 
 interface AuthState {
     currentUser: User | null;
@@ -20,8 +27,9 @@ export const useAuthStore = create<AuthState>()(
 
             login: async (userId: string) => {
                 try {
-                    const user = await db.users.where('userId').equalsIgnoreCase(userId).first();
-                    if (user) {
+                    const res = await fetch(`/api/users/${userId}`);
+                    if (res.ok) {
+                        const user = await res.json();
                         if (user.status === 'suspended') {
                             throw new Error('USER_SUSPENDED');
                         }
@@ -42,31 +50,24 @@ export const useAuthStore = create<AuthState>()(
 
             signup: async (userId: string, nickname: string, role: 'user' | 'admin' = 'user') => {
                 try {
-                    // Ensure DB is open
-                    if (!db.isOpen()) {
-                        await db.open();
-                    }
-
-                    const exists = await db.users.where('userId').equalsIgnoreCase(userId).first();
-                    if (exists) return { success: false, error: 'exists' };
-
-                    const newUserId = await db.users.add({
-                        userId,
-                        nickname,
-                        role,
-                        joinedAt: new Date()
+                    const res = await fetch('/api/users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId, nickname, role })
                     });
 
-                    const user = await db.users.get(newUserId);
-                    if (user) {
-                        set({
-                            currentUser: user,
-                            isAuthenticated: true,
-                            isAdmin: user.role === 'admin'
-                        });
-                        return { success: true };
+                    if (!res.ok) {
+                        const errorData = await res.json();
+                        return { success: false, error: errorData.error || 'registration_failed' };
                     }
-                    return { success: false, error: 'verification_failed' };
+
+                    const user = await res.json();
+                    set({
+                        currentUser: user,
+                        isAuthenticated: true,
+                        isAdmin: user.role === 'admin'
+                    });
+                    return { success: true };
                 } catch (error: any) {
                     console.error("CRITICAL: Signup protocol failed. Diagnostic data:", error);
                     return { success: false, error: error.message || 'connection_failure' };

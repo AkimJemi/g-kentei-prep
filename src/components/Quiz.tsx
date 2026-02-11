@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useQuizStore } from '../store/useQuizStore';
 import { useLanguageStore } from '../store/useLanguageStore';
-import { CheckCircle2, XCircle, RefreshCw, AlertCircle, Award, ChevronLeft, ChevronRight, LogOut, Terminal, Cpu, Volume2, VolumeX, Clock } from 'lucide-react';
+import { CheckCircle2, XCircle, RefreshCw, AlertCircle, Award, ChevronLeft, ChevronRight, LogOut, Terminal, Cpu, Volume2, VolumeX, Clock, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
@@ -61,12 +61,41 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
         question: currentQuestion?.question, 
         options: currentQuestion?.options, 
         explanation: currentQuestion?.explanation,
+        optionExplanations: currentQuestion?.optionExplanations,
         category: currentQuestion?.category
     };
 
   const selectedAnswer = (answers as (number | undefined)[])[currentQuestionIndex];
   const hasAnswered = selectedAnswer !== undefined;
   const isCorrect = hasAnswered && selectedAnswer === currentQuestion?.correctAnswer;
+
+  const [revealedIndices, setRevealedIndices] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (hasAnswered) {
+        const newRevealed = new Set<number>();
+        if (currentQuestion) {
+            newRevealed.add(currentQuestion.correctAnswer);
+        }
+        if (selectedAnswer !== undefined) {
+            newRevealed.add(selectedAnswer);
+        }
+        setRevealedIndices(newRevealed);
+    } else {
+        setRevealedIndices(new Set());
+    }
+  }, [hasAnswered, currentQuestionIndex, selectedAnswer]);
+
+  const toggleReveal = (idx: number) => {
+    if (!hasAnswered) return;
+    const newSet = new Set(revealedIndices);
+    if (newSet.has(idx)) {
+        newSet.delete(idx);
+    } else {
+        newSet.add(idx);
+    }
+    setRevealedIndices(newSet);
+  };
 
   const handleReadAloud = () => {
     if (isReading) {
@@ -265,42 +294,86 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-4">
                     {localizedContent.options.map((option: string, idx: number) => {
                         const isSelected = selectedAnswer === idx;
                         const isThisCorrect = idx === currentQuestion?.correctAnswer;
                         const showWrong = hasAnswered && isSelected && idx !== currentQuestion?.correctAnswer;
+                        const optionExplanation = (localizedContent as any).optionExplanations?.[idx];
+                        const isRevealed = revealedIndices.has(idx);
                         
                         return (
-                            <motion.button
-                                key={idx}
-                                initial={false}
-                                animate={showWrong ? { x: [-5, 5, -5, 5, 0] } : {}}
-                                transition={{ duration: 0.4 }}
-                                onClick={() => !hasAnswered && setAnswer(currentQuestionIndex, idx)}
-                                disabled={hasAnswered}
-                                className={clsx(
-                                    "w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-all duration-300 flex items-center justify-between relative overflow-hidden active:scale-[0.98] min-h-[64px]",
-                                    hasAnswered 
-                                        ? isThisCorrect 
-                                            ? "border-green-500/50 bg-green-500/10 text-green-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]" 
-                                            : showWrong 
-                                                ? "border-red-500/50 bg-red-500/10 text-red-500" 
-                                                : "border-transparent bg-slate-900/50 text-slate-600 opacity-60 scale-95"
-                                        : isSelected
-                                            ? "border-accent bg-accent/10 text-white shadow-[0_0_20px_rgba(56,189,248,0.1)]"
-                                            : "border-slate-800/50 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-800/60 text-slate-400 hover:text-slate-200"
-                                )}
-                            >
-                                <span className="font-bold tracking-tight text-sm md:text-base relative z-10">{option}</span>
-                                <div className="relative z-10 flex items-center gap-2">
-                                    {(hasAnswered && isThisCorrect) && <CheckCircle2 className="w-5 h-5 text-green-500" />}
-                                    {showWrong && <XCircle className="w-5 h-5 text-red-500" />}
-                                    <div className="hidden xl:inline text-[10px] font-black text-slate-600">
-                                        [{idx + 1}]
+                            <div key={idx} className="space-y-2">
+                                <motion.button
+                                    initial={false}
+                                    animate={showWrong ? { x: [-2, 2, -2, 2, 0] } : {}}
+                                    transition={{ duration: 0.2 }}
+                                    onClick={() => hasAnswered ? toggleReveal(idx) : setAnswer(currentQuestionIndex, idx)}
+                                    className={clsx(
+                                        "w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-colors duration-200 flex items-center justify-between relative overflow-hidden active:scale-[0.99] min-h-[64px]",
+                                        hasAnswered 
+                                            ? isThisCorrect 
+                                                ? "border-green-500/40 bg-green-500/10 text-green-400" 
+                                                : showWrong 
+                                                    ? "border-red-500/40 bg-red-500/10 text-red-500" 
+                                                    : isRevealed
+                                                        ? "border-slate-700 bg-slate-800/60 text-slate-200"
+                                                        : "border-transparent bg-slate-900/50 text-slate-600 opacity-60 hover:opacity-100"
+                                            : isSelected
+                                                ? "border-accent bg-accent/10 text-white shadow-sm"
+                                                : "border-slate-800/50 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-800/60 text-slate-400 hover:text-slate-200"
+                                    )}
+                                >
+                                    <span className="font-bold tracking-tight text-sm md:text-base relative z-10 pr-8">{option}</span>
+                                    <div className="relative z-10 flex items-center gap-3">
+                                        {(hasAnswered && isThisCorrect) && <CheckCircle2 className="w-5 h-5 text-green-500" />}
+                                        {showWrong && <XCircle className="w-5 h-5 text-red-500" />}
+                                        
+                                        {hasAnswered && (
+                                            <motion.div
+                                                animate={{ rotate: isRevealed ? 180 : 0 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="opacity-40"
+                                            >
+                                                <ChevronDown className="w-4 h-4" />
+                                            </motion.div>
+                                        )}
+
+                                        <div className="hidden xl:inline text-[10px] font-black text-slate-600 opacity-50">
+                                            [{idx + 1}]
+                                        </div>
                                     </div>
-                                </div>
-                            </motion.button>
+                                </motion.button>
+                                
+                                <AnimatePresence>
+                                    {hasAnswered && isRevealed && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                            animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
+                                            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                            transition={{ duration: 0.2, ease: "easeOut" }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className={clsx(
+                                                "px-5 py-4 rounded-2xl text-[12px] md:text-[13px] leading-relaxed border",
+                                                isThisCorrect 
+                                                    ? "bg-green-500/[0.03] border-green-500/10 text-green-400/90" 
+                                                    : "bg-slate-900/80 border-slate-800/80 text-slate-300"
+                                            )}>
+                                                <div className="flex items-start gap-3">
+                                                    <div className={clsx(
+                                                        "w-1 h-4 mt-1 rounded-full shrink-0", 
+                                                        isThisCorrect ? "bg-green-500" : "bg-slate-600"
+                                                    )} />
+                                                    <p className="font-medium">
+                                                        {optionExplanation || (isThisCorrect ? localizedContent.explanation : t('no_specific_explanation'))}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         );
                     })}
                 </div>
