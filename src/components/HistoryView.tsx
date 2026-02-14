@@ -1,29 +1,28 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 import { db, type QuizAttempt } from '../db/db';
 import { normalizeKeys } from '../utils/normalize';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useAuthStore } from '../store/useAuthStore';
-import type { Question } from '../types';
+import { useQuestions } from '../hooks/useQuestions';
 import { Calendar, ChevronDown, CheckCircle2, XCircle, BookOpen, Radio, Database, History, Zap, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
 export const HistoryView: React.FC = () => {
     const { t } = useLanguageStore();
-    const { currentUser } = useAuthStore();
+    const { currentUser, isAuthenticated } = useAuthStore();
     const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedSessionId, setExpandedSessionId] = useState<number | null>(null);
     const [expandedQuestionId, setExpandedQuestionId] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'sessions' | 'questions'>('sessions');
-    const [allQuestions, setAllQuestions] = useState<Question[]>([]);
+    const { data: allQuestions = [] } = useQuestions();
+    // const [allQuestions, setAllQuestions] = useState<Question[]>([]); // Replaced by hook
     const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
 
     useEffect(() => {
-        fetch('/api/questions')
-            .then(res => res.json())
-            .then(data => setAllQuestions(normalizeKeys(data)))
-            .catch(console.error);
+        // fetch('/api/questions') REMOVED
 
         fetch('/api/categories')
             .then(res => res.json())
@@ -39,11 +38,21 @@ export const HistoryView: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        const userId = currentUser?.userId || (currentUser as any)?.id;
-        if (!userId) {
-            setLoading(false);
+       if (isAuthenticated && (!currentUser || !currentUser.userId)) {
+            setTimeout(() => setLoading(false), 0);
             return;
         }
+        // If not authenticated or currentUser/userId is available, proceed to fetch.
+        // If isAuthenticated is false, and currentUser is null, this block won't be entered,
+        // and the subsequent db query will use a null userId, which is handled by Dexie.
+        // However, if isAuthenticated is true but currentUser/userId is not yet available,
+        // we wait.
+        const userId = currentUser?.userId;
+        if (!userId) { // This handles the case where isAuthenticated is true but userId is still null/undefined
+            setTimeout(() => setLoading(false), 0);
+            return;
+        }
+
         db.attempts.where('userId').equals(userId).reverse().sortBy('date').then((data: QuizAttempt[]) => {
             setAttempts(data);
             setLoading(false);
@@ -52,6 +61,14 @@ export const HistoryView: React.FC = () => {
             setLoading(false);
         });
     }, [currentUser]);
+
+    const handleClearHistory = async () => {
+        if (!currentUser?.userId) return;
+        if (window.confirm('Permanently delete all neural records for this profile?')) {
+            await db.attempts.where('userId').equals(currentUser.userId).delete();
+            setAttempts([]);
+        }
+    };
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -64,15 +81,7 @@ export const HistoryView: React.FC = () => {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
-
-    const handleClearHistory = async () => {
-        if (!currentUser?.userId) return;
-        if (window.confirm('Permanently delete all neural records for this profile?')) {
-            await db.attempts.where('userId').equals(currentUser.userId).delete();
-            setAttempts([]);
-        }
-    };
+    }, [handleClearHistory]); // Added dependency which is now safe since it's defined before
 
     if (loading) {
         return (

@@ -1,0 +1,187 @@
+
+> g-kentei-prep@4.1.0 lint
+> eslint .
+
+
+C:\antigravity_workspace\g-kentei-prep\src\App.tsx
+   84:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\antigravity_workspace\g-kentei-prep\src\App.tsx:84:7
+  82 |
+  83 |     if (currentUser) {
+> 84 |       fetchData();
+     |       ^^^^^^^^^ Avoid calling setState() directly within an effect
+  85 |       // Refresh unread count every 60 seconds
+  86 |       const interval = setInterval(fetchData, 60000);
+  87 |       return () => clearInterval(interval);  react-hooks/set-state-in-effect
+   89:6   warning  React Hook useEffect has missing dependencies: 'fetchData' and 'logout'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+  203:6   warning  React Hook useEffect has a missing dependency: 'handleNavigate'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+  300:60  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+  450:56  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\__tests__\App.test.tsx
+  31:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\components\AdminDashboard.tsx
+  158:6   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array                              react-hooks/exhaustive-deps
+  158:56  warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+
+C:\antigravity_workspace\g-kentei-prep\src\components\ContactView.tsx
+  44:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\components\Dashboard.tsx
+   36:6   warning  React Hook useEffect has a missing dependency: 'setStats'. Either include it or remove the dependency array                                                     react-hooks/exhaustive-deps
+   67:27  error    '_' is defined but never used                                                                                                                                   @typescript-eslint/no-unused-vars
+   93:6   warning  React Hook useEffect has missing dependencies: 'initialDataLoaded', 'setInitialDataLoaded', and 'setStats'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  118:6   warning  React Hook useEffect has a missing dependency: 'handleWeakPointReview'. Either include it or remove the dependency array                                        react-hooks/exhaustive-deps
+
+C:\antigravity_workspace\g-kentei-prep\src\components\FlashcardView.tsx
+  25:50  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  34:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\antigravity_workspace\g-kentei-prep\src\components\FlashcardView.tsx:34:13
+  32 |             // Shuffle cards
+  33 |             setTimeout(() => setCards(formatted.sort(() => Math.random() - 0.5)), 0);
+> 34 |             setIsLoading(false);
+     |             ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  35 |         }
+  36 |     }, [questions]);
+  37 |  react-hooks/set-state-in-effect
+  63:8   warning  React Hook useEffect has missing dependencies: 'handleFlip', 'handleNext', 'handlePrev', and 'onBack'. Either include them or remove the dependency array. If 'onBack' changes too often, find the parent component that defines it and wrap that definition in useCallback                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       react-hooks/exhaustive-deps
+
+C:\antigravity_workspace\g-kentei-prep\src\components\HistoryView.tsx
+   31:42   error    Unexpected any. Specify a different type                                                                                                                                                                @typescript-eslint/no-explicit-any
+   58:26   error    Unexpected any. Specify a different type                                                                                                                                                                @typescript-eslint/no-explicit-any
+   62:8    warning  React Hook useEffect has a missing dependency: 'isAuthenticated'. Either include it or remove the dependency array                                                                                      react-hooks/exhaustive-deps
+   64:11   warning  The 'handleClearHistory' function makes the dependencies of useEffect Hook (at line 83) change on every render. To fix this, wrap the definition of 'handleClearHistory' in its own useCallback() Hook  react-hooks/exhaustive-deps
+  423:106  error    Unexpected any. Specify a different type                                                                                                                                                                @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\components\Layout.tsx
+  5:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\components\LoginView.tsx
+  48:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\components\MetricCard.tsx
+  5:11  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\components\NotificationView.tsx
+  37:5  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\antigravity_workspace\g-kentei-prep\src\components\NotificationView.tsx:37:5
+  35 |
+  36 |   useEffect(() => {
+> 37 |     fetchNotifications();
+     |     ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  38 |   }, []);
+  39 |
+  40 |   const markAsRead = async (id: number) => {  react-hooks/set-state-in-effect
+  38:6  warning  React Hook useEffect has a missing dependency: 'fetchNotifications'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+
+C:\antigravity_workspace\g-kentei-prep\src\components\Quiz.tsx
+   86:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\antigravity_workspace\g-kentei-prep\src\components\Quiz.tsx:86:9
+  84 |         setTimeout(() => setRevealedIndices(newRevealed), 0);
+  85 |     } else {
+> 86 |         setRevealedIndices(new Set());
+     |         ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  87 |     }
+  88 |   }, [hasAnswered, currentQuestionIndex, selectedAnswer]);
+  89 |  react-hooks/set-state-in-effect
+   88:6   warning  React Hook useEffect has a missing dependency: 'currentQuestion'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+  105:9   warning  The 'handleQuit' function makes the dependencies of useEffect Hook (at line 184) change on every render. To fix this, wrap the definition of 'handleQuit' in its own useCallback() Hook                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+  117:6   warning  React Hook useEffect has a missing dependency: 'stop'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+  119:9   warning  The 'handleReadAloud' function makes the dependencies of useEffect Hook (at line 184) change on every render. To fix this, wrap the definition of 'handleReadAloud' in its own useCallback() Hook                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-hooks/exhaustive-deps
+  330:72  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\components\Statistics.tsx
+   34:26  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+   37:42  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+   48:63  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+   52:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\antigravity_workspace\g-kentei-prep\src\components\Statistics.tsx:52:13
+  50 |         if (!userId) {
+  51 |             setTimeout(() => setStats(null), 0);
+> 52 |             setIsLoading(false);
+     |             ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  53 |             return;
+  54 |         }
+  55 |           react-hooks/set-state-in-effect
+   61:78  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+   73:40  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  110:26  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+  376:34  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\components\StudyMode.tsx
+  11:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\db\db.ts
+   45:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   49:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   85:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   95:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  124:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  127:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\store\useAuthStore.ts
+  71:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  86:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\store\useDashboardStore.ts
+  8:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\store\useQuizStore.ts
+   17:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   33:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   49:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  124:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  148:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  165:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  189:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  227:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  259:63  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  276:63  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  293:63  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\antigravity_workspace\g-kentei-prep\src\store\useSubscriptionStore.ts
+  10:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  13:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  68:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 67 problems (52 errors, 15 warnings)
+

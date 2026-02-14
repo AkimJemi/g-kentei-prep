@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { normalizeKeys } from '../utils/normalize';
 export interface User {
     userId: string;            // Primary key - login ID

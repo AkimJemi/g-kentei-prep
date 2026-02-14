@@ -4,6 +4,7 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { cache } from './cache.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -181,7 +182,44 @@ const initDB = async () => {
   }
 };
 
-initDB();
+initDB().then(() => {
+    // Cache Warming
+    console.log('[Neural Cache] Warming up memory banks...');
+    
+    // 1. Warm Categories
+    pool.query('SELECT * FROM g_kentei_categories ORDER BY displayorder ASC')
+        .then(res => {
+            cache.set('static', 'categories', res.rows);
+            console.log(`[Neural Cache] Categories warmed: ${res.rows.length} items`);
+        })
+        .catch(err => console.error('[Neural Cache] Failed to warm categories:', err));
+
+    // 2. Warm Questions (First Page)
+    pool.query('SELECT * FROM g_kentei_questions')
+        .then(res => {
+            const questions = res.rows.map(q => ({
+                ...q,
+                options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
+                optionExplanations: q.optionexplanations ? (typeof q.optionexplanations === 'string' ? JSON.parse(q.optionexplanations) : q.optionexplanations) : undefined,
+                translations: q.translations ? (typeof q.translations === 'string' ? JSON.parse(q.translations) : q.translations) : undefined
+            }));
+            
+            // Warm the "all questions" query
+            const cacheKeyAll = `questions:${JSON.stringify({})}`;
+            cache.set('query', cacheKeyAll, questions);
+
+            // Warm the "paginated page 1" query
+            // Simulate req.query for default params
+            const defaultParams = { page: '1', limit: '20' };
+            // We can't easily replicate getPaginatedData logic without calling it, 
+            // but for now, warming the raw 'all' list covers the most expensive part if we cache the transformed rows.
+            // Actually, getPaginatedData generates SQL. 
+            // Let's just warm the specific key for "all questions" which is used by default if no params
+            
+            console.log(`[Neural Cache] Questions warmed: ${questions.length} items`);
+        })
+        .catch(err => console.error('[Neural Cache] Failed to warm questions:', err));
+});
 
 // Robust Column Check / Migration (Postgres version)
 const migrateTable = async (tableName, columns) => {
@@ -279,7 +317,11 @@ const getPaginatedData = async (tableName, req, searchColumns = []) => {
 // Category APIs
 app.get('/api/categories', async (req, res) => {
     try {
+        const cached = cache.get('static', 'categories');
+        if (cached) return res.json(cached);
+
         const result = await pool.query('SELECT * FROM g_kentei_categories ORDER BY displayorder ASC');
+        cache.set('static', 'categories', result.rows);
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -293,6 +335,7 @@ app.post('/api/admin/categories', async (req, res) => {
             INSERT INTO g_kentei_categories (id, title, icon, color, bg, description, displayorder)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
         `, [id, title, icon, color, bg, description, displayOrder || 0]);
+        cache.invalidate('static', 'categories');
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -307,6 +350,7 @@ app.put('/api/admin/categories/:id', async (req, res) => {
             SET title = $1, icon = $2, color = $3, bg = $4, description = $5, displayorder = $6
             WHERE id = $7
         `, [title, icon, color, bg, description, displayOrder, req.params.id]);
+        cache.invalidate('static', 'categories');
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -316,6 +360,7 @@ app.put('/api/admin/categories/:id', async (req, res) => {
 app.delete('/api/admin/categories/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM g_kentei_categories WHERE id = $1', [req.params.id]);
+        cache.invalidate('static', 'categories');
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -377,6 +422,13 @@ app.get('/api/questions', async (req, res) => {
         }
     }
 
+    // Check Cache for non-gated requests
+    const cacheKey = `questions:${JSON.stringify(req.query)}`;
+    if (!userId) { // Only cache public/non-user specific queries to avoid leaking gated content logic or user state
+         const cached = cache.get('query', cacheKey);
+         if (cached) return res.json(cached);
+    }
+
     const usePagination = page !== undefined || limit !== undefined || search !== undefined || category !== undefined;
     
     if (!usePagination) {
@@ -387,6 +439,7 @@ app.get('/api/questions', async (req, res) => {
             optionExplanations: q.optionexplanations ? (typeof q.optionexplanations === 'string' ? JSON.parse(q.optionexplanations) : q.optionexplanations) : undefined,
             translations: q.translations ? (typeof q.translations === 'string' ? JSON.parse(q.translations) : q.translations) : undefined
         }));
+        if (!userId) cache.set('query', cacheKey, questions);
         return res.json(questions);
     }
 
@@ -397,8 +450,12 @@ app.get('/api/questions', async (req, res) => {
         optionExplanations: q.optionexplanations ? (typeof q.optionexplanations === 'string' ? JSON.parse(q.optionexplanations) : q.optionexplanations) : undefined,
         translations: q.translations ? (typeof q.translations === 'string' ? JSON.parse(q.translations) : q.translations) : undefined
     }));
-    res.json({ data: formatted, pagination });
+    
+    const response = { data: formatted, pagination };
+    if (!userId) cache.set('query', cacheKey, response);
+    res.json(response);
   } catch (err) {
+    console.error('[API Error] GET /api/questions:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -411,6 +468,7 @@ app.post('/api/admin/questions', async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id
      `, [category, question, JSON.stringify(options), correctAnswer, explanation, JSON.stringify(translations || {}), source || 'admin']);
+     cache.invalidate('query');
      res.json({ success: true, id: result.rows[0].id });
    } catch (err) {
      res.status(500).json({ error: err.message });
@@ -425,6 +483,7 @@ app.put('/api/admin/questions/:id', async (req, res) => {
             SET category = $1, question = $2, options = $3, correctAnswer = $4, explanation = $5, translations = $6
             WHERE id = $7
         `, [category, question, JSON.stringify(options), correctAnswer, explanation, JSON.stringify(translations || {}), req.params.id]);
+        cache.invalidate('query');
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -434,6 +493,7 @@ app.put('/api/admin/questions/:id', async (req, res) => {
 app.delete('/api/admin/questions/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM g_kentei_questions WHERE id = $1', [req.params.id]);
+        cache.invalidate('query');
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -610,6 +670,7 @@ app.post('/api/admin/submissions/:id/approve', async (req, res) => {
     `, [submission.category, submission.question, submission.options, submission.correctAnswer, submission.explanation, 'user_contribution']);
 
     await pool.query('UPDATE g_kentei_submitted_questions SET status = $1 WHERE id = $2', ['approved', id]);
+    cache.invalidate('query'); // Invalidate questions because a new one was added
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -657,14 +718,22 @@ const formatUser = (user) => {
 app.get('/api/users', async (req, res) => {
     try {
         const { page, limit, search } = req.query;
+        const cacheKey = `users:${JSON.stringify(req.query)}`;
+        const cached = cache.get('user', cacheKey);
+        if (cached) return res.json(cached);
+
         const usePagination = page !== undefined || limit !== undefined || search !== undefined;
         
         if (!usePagination) {
             const result = await pool.query('SELECT * FROM g_kentei_users');
-            return res.json(result.rows.map(formatUser));
+            const response = result.rows.map(formatUser);
+            cache.set('user', cacheKey, response);
+            return res.json(response);
         }
         const { data, pagination } = await getPaginatedData('g_kentei_users', req, ['userId', 'nickname', 'role']);
-        res.json({ data: data.map(formatUser), pagination });
+        const response = { data: data.map(formatUser), pagination };
+        cache.set('user', cacheKey, response);
+        res.json(response);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -691,6 +760,7 @@ app.post('/api/users', async (req, res) => {
   try {
     await pool.query('INSERT INTO g_kentei_users (userId, nickname, role) VALUES ($1, $2, $3)', [userId, nickname, role]);
     const user = await pool.query('SELECT * FROM g_kentei_users WHERE userId = $1', [userId]);
+    cache.invalidate('user');
     res.json(formatUser(user.rows[0]));
   } catch (err) {
     if (err.message.includes('unique') || err.code === '23505') {
@@ -699,6 +769,27 @@ app.post('/api/users', async (req, res) => {
       res.status(500).json({ error: err.message });
     }
   }
+});
+
+app.get('/api/rankings', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                a.userId, 
+                MAX(u.nickname) as nickname,
+                MAX(u.role) as role,
+                SUM(a.score) as totalScore,
+                COUNT(a.id) as missionCount
+            FROM g_kentei_attempts a
+            LEFT JOIN g_kentei_users u ON a.userId = u.userId
+            GROUP BY a.userId
+            ORDER BY totalScore DESC
+            LIMIT 10
+        `);
+        res.json(result.rows);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // Chat API
@@ -770,6 +861,7 @@ app.patch('/api/admin/users/:id/status', async (req, res) => {
   const { status } = req.body;
   try {
     await pool.query('UPDATE g_kentei_users SET status = $1 WHERE userId = $2', [status, id]);
+    cache.invalidate('user');
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1087,10 +1179,80 @@ app.get('/api/diagnostics', async (req, res) => {
 app.delete('/api/users/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM g_kentei_users WHERE userId = $1', [req.params.id]);
+    cache.invalidate('user');
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Weak Points Analysis Endpoint
+app.get('/api/user-progress/:userId/weak-points', async (req, res) => {
+    const { userId } = req.params;
+    try {
+        // Optimized SQL Aggregation
+        // Extracts wrong question IDs from the JSON array in 'wrongQuestionIds' column
+        // Casts them to integers, counts occurrences, and returns top 20
+        const query = `
+            SELECT
+                value::int as "questionId",
+                COUNT(*) as "incorrectCount"
+            FROM
+                g_kentei_attempts,
+                LATERAL jsonb_array_elements_text(wrongQuestionIds::jsonb) as value
+            WHERE
+                userId = $1
+            GROUP BY
+                value
+            ORDER BY
+                "incorrectCount" DESC
+            LIMIT 20;
+        `;
+        
+        const result = await pool.query(query, [userId]);
+        
+        // Map postgres lowercase columns if needed, but alias handles it mostly
+        // jsonb_array_elements_text returns text, casting to int in SQL
+        // result.rows will have { questionId: 123, incorrectCount: '5' } (count is string in pg)
+        
+        const weakPoints = result.rows.map(row => ({
+            questionId: parseInt(row.questionId),
+            incorrectCount: parseInt(row.incorrectCount)
+        }));
+
+        res.json(weakPoints);
+    } catch (e) {
+        // Fallback to JS processing if JSON parsing fails in SQL (e.g. invalid JSON in DB)
+        console.error("SQL Aggregation failed, falling back to JS:", e.message);
+        try {
+            const attemptsRes = await pool.query(`
+                SELECT wrongQuestionIds FROM g_kentei_attempts WHERE userId = $1
+            `, [userId]);
+    
+            const wrongCounts = {};
+            attemptsRes.rows.forEach(row => {
+                let ids = row.wrongquestionids;
+                if (typeof ids === 'string') {
+                    try { ids = JSON.parse(ids); } catch(e) {}
+                }
+                if (Array.isArray(ids)) {
+                    ids.forEach(qid => {
+                        wrongCounts[qid] = (wrongCounts[qid] || 0) + 1;
+                    });
+                }
+            });
+    
+            const weakPoints = Object.entries(wrongCounts)
+                .map(([qid, count]) => ({ questionId: parseInt(qid), incorrectCount: count }))
+                .sort((a, b) => b.incorrectCount - a.incorrectCount)
+                .slice(0, 20);
+            
+            res.json(weakPoints);
+        } catch (fallbackError) {
+             console.error("Fallback failed:", fallbackError);
+             res.status(500).json({ error: fallbackError.message });
+        }
+    }
 });
 
 // Serve static files from the dist directory

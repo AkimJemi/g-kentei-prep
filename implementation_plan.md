@@ -1,45 +1,58 @@
-# Server-Side Caching Implementation Plan
+# Implementation Plan - G-Kentei Client-Side Caching
 
-## Goal Description
-Implement an **LRU (Least Recently Used) Caching Strategy** for the backend API.
-The goal is to reduce response times and mitigate timeouts for read-heavy operations, especially for `api/categories` and `api/questions`, by avoiding redundant round-trips to the remote PostgreSQL database.
+Implement client-side caching using `@tanstack/react-query` to improve user experience and reduce server load.
 
 ## User Review Required
-> [!NOTE]
-> This requires installing `lru-cache` as a production dependency.
-> Cache invalidation logic will be added to mutation endpoints (POST/PUT/DELETE) to ensure data freshness.
+- [IMPORTANT] This change introduces a new dependency: `@tanstack/react-query`.
+- [NOTE] `staleTime` will be set to 5 minutes (300000ms). Questions are assumed to be relatively static during a user session.
 
 ## Proposed Changes
 
-### Configuration & Dependencies
-#### [MODIFY] [package.json](file:///c:/antigravity_workspace/g-kentei-prep/package.json)
-- Add `lru-cache` to `dependencies`.
+### Core Infrastructure
+#### [NEW] [src/lib/react-query.ts](file:///c:/antigravity_workspace/g-kentei-prep/src/lib/react-query.ts)
+- Create `queryClient` instance with default options (`staleTime: 5 * 60 * 1000`, `gcTime: 10 * 60 * 1000`).
 
-### New Modules
-#### [NEW] [server/cache.js](file:///c:/antigravity_workspace/g-kentei-prep/server/cache.js)
-- Implement `CacheManager` class wrapping `lru-cache`.
-- Define specific caches:
-    - `staticCache`: For categories (TTL: 24h)
-    - `queryCache`: For expensive list queries (TTL: 5m)
-    - `userCache`: For user data (TTL: 1m)
+#### [MODIFY] [src/main.tsx](file:///c:/antigravity_workspace/g-kentei-prep/src/main.tsx)
+- Wrap `App` with `QueryClientProvider`.
 
-### Server Integration
-#### [MODIFY] [server/index.js](file:///c:/antigravity_workspace/g-kentei-prep/server/index.js)
-- Import `CacheManager`.
-- **Read Operations**:
-    - Wrap `GET /api/categories` with `staticCache`.
-    - Wrap `GET /api/questions` with `queryCache` (key based on query params).
-    - Wrap `GET /api/users` with `userCache`.
-- **Write Operations (Invalidation)**:
-    - Invalidate `categories` cache on Category CRUD.
-    - Invalidate `questions` cache on Question CRUD.
-    - Invalidate `users` cache on User CRUD.
+### Custom Hooks
+#### [NEW] [src/hooks/useQuestions.ts](file:///c:/antigravity_workspace/g-kentei-prep/src/hooks/useQuestions.ts)
+- Create `useQuestions` hook wrapping `useQuery`.
+- Create `usePrefetchQuestions` hook or helper if needed.
+
+### Component Refactoring
+#### [MODIFY] [src/store/useQuizStore.ts](file:///c:/antigravity_workspace/g-kentei-prep/src/store/useQuizStore.ts)
+- Import `queryClient` from `src/lib/react-query.ts`.
+- Replace direct `fetch` in `fetchAllQuestions` with `queryClient.fetchQuery`.
+
+#### [MODIFY] [src/components/Dashboard.tsx](file:///c:/antigravity_workspace/g-kentei-prep/src/components/Dashboard.tsx)
+- Replace `fetch` with `useQuestions`.
+
+#### [MODIFY] [src/components/StudyMode.tsx](file:///c:/antigravity_workspace/g-kentei-prep/src/components/StudyMode.tsx)
+- Replace `fetch` with `useQuestions`.
+
+#### [MODIFY] [src/components/Statistics.tsx](file:///c:/antigravity_workspace/g-kentei-prep/src/components/Statistics.tsx)
+- Replace `fetch` with `useQuestions`.
+
+#### [MODIFY] [src/components/HistoryView.tsx](file:///c:/antigravity_workspace/g-kentei-prep/src/components/HistoryView.tsx)
+- Replace `fetch` with `useQuestions`.
+
+#### [MODIFY] [src/components/FlashcardView.tsx](file:///c:/antigravity_workspace/g-kentei-prep/src/components/FlashcardView.tsx)
+- Replace `fetch` with `useQuestions`.
+
+#### [MODIFY] [src/components/AdminDashboard.tsx](file:///c:/antigravity_workspace/g-kentei-prep/src/components/AdminDashboard.tsx)
+- Replace `fetchSafe` logic with `useQuestions` (or keep `fetchSafe` but wrap in query if needed, likely straight replacement for GET).
 
 ## Verification Plan
 
 ### Manual Verification
-1. **Performance Test**: Re-run `npm run test:perf` and verify significant improvement in `Requests/sec` and reduced latency.
-2. **Freshness Test**:
-    - Build cache by querying `GET /api/categories`.
-    - Modify a category via `PUT /api/admin/categories/:id`.
-    - Query `GET /api/categories` again and verify the change is reflected (cache invalidated).
+1.  **Network Activity**:
+    - Open "Study Mode". Verify `api/questions` request.
+    - Navigate to Dashboard.
+    - Return to "Study Mode". Verify **NO** new `api/questions` request (served from cache).
+2.  **Functionality**:
+    - Verify Quiz starts correctly.
+    - Verify Statistics load correctly.
+    - Verify Admin Dashboard loads questions.
+3.  **Refetching**:
+    - Verify that explicitly refreshing via "Reload" button (if available) or wait > 5 mins triggers new fetch.

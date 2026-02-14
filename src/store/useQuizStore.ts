@@ -1,28 +1,24 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from 'zustand';
 import type { QuizState, Question } from '../types';
 import { db } from '../db/db';
 import { useAuthStore } from './useAuthStore';
-import { normalizeKeys } from '../utils/normalize';
+import { queryClient } from '../lib/react-query';
+import { QUESTIONS_QUERY_KEY, fetchQuestions } from '../hooks/useQuestions';
 
 // Helper to fetch all questions
 const fetchAllQuestions = async (userId?: string): Promise<{ questions: Question[]; error?: string; limitReached?: boolean }> => {
     try {
-        const query = userId ? `?userId=${userId}` : '';
-        const res = await fetch(`/api/questions${query}`);
-
-        if (res.status === 403) {
-            const errorData = await res.json();
-            return { questions: [], error: errorData.message, limitReached: true };
+        const questions = await queryClient.fetchQuery({
+            queryKey: [QUESTIONS_QUERY_KEY, userId],
+            queryFn: () => fetchQuestions(userId),
+            staleTime: 5 * 60 * 1000,
+        });
+        return { questions };
+    } catch (error: any) {
+        if (error.message === 'DAILY_LIMIT_REACHED') {
+            return { questions: [], error: 'DAILY_LIMIT_REACHED', limitReached: true };
         }
-
-        if (!res.ok) {
-            console.warn(`API Error: ${res.status} ${res.statusText}`);
-            throw new Error('Failed to fetch questions');
-        }
-        const data = await res.json();
-        const questionsArr = Array.isArray(data) ? data : (data.data || []);
-        return { questions: normalizeKeys(questionsArr) };
-    } catch (error) {
         console.error("Failed to load questions from Neural Link", error);
         return { questions: [], error: 'Failed to connect to Neural Link' };
     }

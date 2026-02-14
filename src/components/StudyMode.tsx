@@ -1,15 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 
 import { useLanguageStore } from '../store/useLanguageStore';
 import { 
     Brain, Cpu, Database, Zap, Layers, Globe, 
     Shield, Terminal, BookOpen, Award, 
-    ChevronLeft, ChevronRight, HelpCircle 
+    ChevronLeft, HelpCircle 
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
-import { type Category } from '../db/db';
-
 const ICON_MAP: Record<string, any> = {
     Brain, Cpu, Database, Zap, Layers, Globe, 
     Shield, Terminal, BookOpen, Award
@@ -23,64 +22,22 @@ import { useAuthStore } from '../store/useAuthStore';
 
 // ... (existing imports)
 
-import { normalizeKeys } from '../utils/normalize';
+import { useQuestions } from '../hooks/useQuestions';
+import { useCategories } from '../hooks/useCategories';
+import { useUserProgress } from '../hooks/useUserProgress';
 
 // ... (existing imports)
 
 export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
   const { t } = useLanguageStore();
   const currentUser = useAuthStore((state) => state.currentUser);
-  const [totalQuestions, setTotalQuestions] = React.useState(0);
-  const [categories, setCategories] = React.useState<Category[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [progress, setProgress] = React.useState<Record<string, { total: number, solved: number, failed: number, remaining: number }>>({});
+  /* Refactored to use React Query hooks */
+  const { data: questions = [], isLoading: questionsLoading } = useQuestions(currentUser?.userId);
+  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useCategories();
+  const { data: progress = {} } = useUserProgress(currentUser?.userId);
 
-  React.useEffect(() => {
-    const fetchData = async () => {
-        try {
-            const userId = currentUser?.userId;
-            const query = userId ? `?userId=${userId}` : '';
-            const t = Date.now();
-            const endpoints = [
-                fetch(`/api/questions${query}${query ? '&' : '?'}t=${t}`),
-                fetch(`/api/categories?t=${t}`)
-            ];
-            
-            if (userId) {
-                endpoints.push(fetch(`/api/user-progress/${userId}?t=${t}`));
-            }
-
-            const results = await Promise.all(endpoints);
-            
-            if (!results[0].ok || !results[1].ok) {
-                throw new Error('Failed to fetch data');
-            }
-
-            const qData = await results[0].json();
-            const cData = await results[1].json();
-            
-            const questions = Array.isArray(qData) ? qData : (qData.data || []);
-            // Normalize categories to handle DB casing issues
-            let categoriesRaw = Array.isArray(cData) ? cData : (cData.data || []);
-            const categories = normalizeKeys(categoriesRaw);
-
-            setTotalQuestions(questions.length);
-            setCategories(categories);
-
-            if (userId && results[2] && results[2].ok) {
-                const pData = await results[2].json();
-                setProgress(pData);
-            }
-        } catch (error: any) {
-            console.error("Failed to load study data", error);
-            setError(error.message || 'Unknown error');
-        } finally {
-            setLoading(false);
-        }
-    };
-    fetchData();
-  }, [currentUser]);
+  const loading = questionsLoading || categoriesLoading;
+  const error = categoriesError ? (categoriesError as Error).message : null;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -113,7 +70,7 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onStartPractice, categories]);
 
-  if (loading) {
+  if (questionsLoading || loading) {
       return (
           <div className="flex items-center justify-center min-h-[400px]">
               <div className="w-12 h-12 border-t-2 border-accent rounded-full animate-spin" />
@@ -167,7 +124,7 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
             </button>
             <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 px-6 py-3 rounded-2xl">
                 <Cpu className="w-4 h-4 text-emerald-500" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('total_nodes')}: {totalQuestions}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('total_nodes')}: {questions.length}</span>
             </div>
         </div>
       </div>

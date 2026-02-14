@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 import { db, type User, type QuizAttempt } from '../db/db';
 import { normalizeKeys } from '../utils/normalize';
@@ -7,17 +8,49 @@ import { Users, BarChart3, ShieldAlert, Trash2, UserCog, TrendingUp, Activity, D
 import clsx from 'clsx';
 import { MetricCard } from './MetricCard';
 
+interface AdminMessage {
+    id: number;
+    userId: string | null;
+    nickname: string;
+    topic: string;
+    name: string;
+    email: string;
+    message: string;
+    createdAt: string;
+    reply?: string;
+    status?: 'replied' | 'unread';
+}
+
+interface AdminSubmission {
+    id: number;
+    category: string;
+    question: string;
+    options: string[] | string;
+    correctAnswer: number;
+    explanation: string;
+    createdAt: string;
+}
+
+interface AdminTodo {
+    id: number;
+    task: string;
+    priority: string;
+    status: string;
+    category: string;
+}
+
+
 export const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [allAttempts, setAllAttempts] = useState<QuizAttempt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'users' | 'messages' | 'submissions' | 'questions' | 'notifications' | 'tasks' | 'categories'>('users');
-  const [messages, setMessages] = useState<any[]>([]);
-  const [dbCategories, setDbCategories] = useState<any[]>([]);
-  const [submissions, setSubmissions] = useState<any[]>([]);
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [messages, setMessages] = useState<AdminMessage[]>([]);
+  const [dbCategories, setDbCategories] = useState<any[]>([]); // Keep any for categories for now as it matches db.ts somewhat
+  const [submissions, setSubmissions] = useState<AdminSubmission[]>([]);
+  const [questions, setQuestions] = useState<any[]>([]); // Keep for questions
   const [allNotifications, setAllNotifications] = useState<any[]>([]);
-  const [todos, setTodos] = useState<any[]>([]);
+  const [todos, setTodos] = useState<AdminTodo[]>([]);
   const [notifications, setAppNotifications] = useState<{id: string, type: 'success' | 'error' | 'info', message: string}[]>([]);
   const [confirmModal, setConfirmModal] = useState<{isOpen: boolean, title?: string, message: string, onConfirm: () => (void | Promise<void>)} | null>(null);
   
@@ -73,10 +106,10 @@ export const AdminDashboard: React.FC = () => {
             setTotalPages(1);
             setTotalFilteredItems(normalized.length || 0);
             return normalized;
-        } catch (e) {
-            console.error(`Failed to fetch ${url}:`, e);
-            return defaultValue;
-        }
+      } catch {
+        console.error("Failed to fetch data");
+        return defaultValue;
+      }
     };
 
     const statsRes = await fetch('/api/admin/stats');
@@ -153,7 +186,7 @@ export const AdminDashboard: React.FC = () => {
         });
         setUsers(prev => prev.map(u => u.userId === userId ? { ...u, status: newStatus } : u));
         addNotification('success', `ユーザーを${newStatus === 'active' ? '復帰' : '一時停止'}しました`);
-    } catch (e) {
+    } catch {
         addNotification('error', 'ステータス更新に失敗しました');
     }
   };
@@ -168,7 +201,7 @@ export const AdminDashboard: React.FC = () => {
         });
         setTodos(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
         addNotification('success', `タスクを${newStatus === 'completed' ? '完了' : '未完了'}にしました`);
-    } catch (e) {
+    } catch {
         addNotification('error', 'タスクの更新に失敗しました');
     }
   };
@@ -178,7 +211,7 @@ export const AdminDashboard: React.FC = () => {
         await fetch(`/api/admin/todos/${id}`, { method: 'DELETE' });
         setTodos(prev => prev.filter(t => t.id !== id));
         addNotification('info', 'タスクを削除しました');
-    } catch (e) {
+    } catch {
         addNotification('error', '削除に失敗しました');
     }
   };
@@ -223,7 +256,7 @@ export const AdminDashboard: React.FC = () => {
         setMessages(prev => prev.map(m => m.id === replyModal.messageId ? { ...m, reply: replyModal.replyText, status: 'replied' } : m));
         addNotification('success', '返信を送信しました');
         setReplyModal(null);
-    } catch (e) {
+    } catch {
         addNotification('error', '返信送信に失敗しました');
     }
   };
@@ -245,7 +278,7 @@ export const AdminDashboard: React.FC = () => {
             setQuestionModal(null);
             fetchData();
         }
-    } catch (e) {
+    } catch {
         addNotification('error', '問題の保存に失敗しました');
     }
   };
@@ -280,7 +313,7 @@ export const AdminDashboard: React.FC = () => {
         setSubmissions(prev => prev.filter(s => s.id !== id));
         addNotification('success', '承認しました (Submission Approved)');
         fetchData();
-    } catch (e) {
+    } catch {
         addNotification('error', '承認中にエラーが発生しました');
     }
   };
@@ -294,7 +327,7 @@ export const AdminDashboard: React.FC = () => {
                 await fetch(`/api/admin/submissions/${id}`, { method: 'DELETE' });
                 setSubmissions(prev => prev.filter(s => s.id !== id));
                 addNotification('info', '投稿を削除しました');
-            } catch (e) {
+            } catch {
                 addNotification('error', '削除中にエラーが発生しました');
             }
             setConfirmModal(null);
@@ -311,7 +344,7 @@ export const AdminDashboard: React.FC = () => {
                 await fetch(`/api/admin/questions/${id}`, { method: 'DELETE' });
                 setQuestions(prev => prev.filter(q => q.id !== id));
                 addNotification('success', '問題を削除しました');
-            } catch (e) {
+            } catch {
                 addNotification('error', '削除エラー');
             }
             setConfirmModal(null);
@@ -373,7 +406,7 @@ export const AdminDashboard: React.FC = () => {
             fetchData();
             form.reset();
         }
-    } catch (e) {
+    } catch {
         addNotification('error', 'カテゴリの保存に失敗しました');
     }
   };
@@ -387,7 +420,7 @@ export const AdminDashboard: React.FC = () => {
                 await fetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
                 addNotification('success', 'カテゴリを削除しました');
                 fetchData();
-            } catch (e) {
+            } catch {
                 addNotification('error', '削除に失敗しました');
             }
             setConfirmModal(null);

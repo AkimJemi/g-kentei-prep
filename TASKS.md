@@ -39,10 +39,10 @@
 - [x] パフォーマンステスト (完了: `PERFORMANCE_REPORT.md` 参照)
   - 課題: リモートDBの遅延により `api/users` が遅く、`api/questions` が高負荷時にタイムアウトする。
   - Next: キャッシング実装、クエリ最適化
-- [ ] **キャッシング実装 (サーバーサイド)**:
-  - `lru-cache` 導入
-  - `server/cache.js` 作成
-  - `api/categories`, `api/questions` への適用
-  - Mutation時 (POST/PUT/DELETE) のキャッシュ無効化ロジック実装
+- [x] **キャッシング実装 (サーバーサイド)**:
+  - [x] `lru-cache` 導入
+  - [x] `server/cache.js` 作成
+  - [x] `api/categories`, `api/questions` への適用
+  - [x] Mutation時 (POST/PUT/DELETE) のキャッシュ無効化ロジック実装
 - [ ] **Nexus Primeとの連携確認**:
   - プロジェクトステータスの同期確認

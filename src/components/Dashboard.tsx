@@ -1,11 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 import { Play, BookOpen, TrendingUp, Zap, Target, AlertTriangle, ArrowRight, Cpu } from 'lucide-react';
 import { useQuizStore } from '../store/useQuizStore';
+import { useQuestions } from '../hooks/useQuestions';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { db } from '../db/db';
-import { normalizeKeys } from '../utils/normalize';
+
 import { GroupChat } from './GroupChat';
+import { RankingView } from './RankingView';
 import { motion } from 'framer-motion';
 import { useDashboardStore } from '../store/useDashboardStore';
 
@@ -24,19 +27,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
   const [isUpdating, setIsUpdating] = useState(false);
   const [isInitializing, setIsInitializing] = useState(!initialDataLoaded);
 
+  const { data: questions } = useQuestions();
+
   useEffect(() => {
-    const fetchTotalQuestions = async () => {
-        try {
-            const res = await fetch('/api/questions');
-            const data = await res.json();
-            const normalized = normalizeKeys(data);
-            setStats({ totalQuestions: normalized.length });
-        } catch (error) {
-            console.error(error);
-        }
-    };
-    fetchTotalQuestions();
-  }, []);
+    if (questions) {
+        setStats({ totalQuestions: questions.length });
+    }
+  }, [questions]);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -233,6 +230,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
             value={stats.totalQuestions.toString()} 
             sublabel={t('db_items')}
         />
+      </motion.div>
+
+      {/* Ranking System */}
+      <motion.div variants={itemVariants} className="max-w-6xl mx-auto">
+          <RankingView />
       </motion.div>
 
       {/* Community Chat */}

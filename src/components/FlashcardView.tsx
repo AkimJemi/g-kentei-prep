@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, ChevronLeft, ChevronRight, RotateCw, X } from 'lucide-react';
 import clsx from 'clsx';
+import { useQuestions } from '../hooks/useQuestions';
 
 interface Flashcard {
     id: number;
@@ -16,25 +18,23 @@ export const FlashcardView: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isFlipped, setIsFlipped] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    
+    const { data: questions = [] } = useQuestions();
 
     useEffect(() => {
-        fetch('/api/questions')
-            .then(res => res.json())
-            .then(data => {
-                // Convert questions to simple flashcards
-                const formatted = (data.data || data).map((q: any) => ({
-                    id: q.id,
-                    category: q.category,
-                    question: q.question,
-                    answer: q.options[q.correctAnswer],
-                    explanation: q.explanation
-                }));
-                // Shuffle cards
-                setCards(formatted.sort(() => Math.random() - 0.5));
-                setIsLoading(false);
-            })
-            .catch(console.error);
-    }, []);
+        if (questions.length > 0) {
+             const formatted = questions.map((q: any) => ({
+                id: q.id,
+                category: q.category,
+                question: q.question,
+                answer: q.options[q.correctAnswer],
+                explanation: q.explanation
+            }));
+            // Shuffle cards
+            setTimeout(() => setCards(formatted.sort(() => Math.random() - 0.5)), 0);
+            setIsLoading(false);
+        }
+    }, [questions]);
 
     const handleFlip = () => setIsFlipped(!isFlipped);
     

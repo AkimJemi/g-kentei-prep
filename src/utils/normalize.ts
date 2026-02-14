@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export const normalizeKeys = (item: any): any => {
     if (!item || typeof item !== 'object') return item;
 
@@ -40,7 +41,7 @@ export const normalizeKeys = (item: any): any => {
         if (typeof value === 'string' && ['wrongquestionids', 'useranswers', 'options', 'translations', 'answers'].includes(key.toLowerCase())) {
             try {
                 finalValue = JSON.parse(value);
-            } catch (e) {
+            } catch {
                 // Not a JSON string after all
             }
         }

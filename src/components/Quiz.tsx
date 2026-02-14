@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 import { useQuizStore } from '../store/useQuizStore';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useTextToSpeech } from '../hooks/useTextToSpeech';
 import { CheckCircle2, XCircle, RefreshCw, AlertCircle, Award, ChevronLeft, ChevronRight, LogOut, Terminal, Cpu, Volume2, VolumeX, Clock, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -25,11 +27,11 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
   } = useQuizStore();
 
   const { t } = useLanguageStore();
-  const [isReading, setIsReading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(questions.length * 60); // 60 seconds per question
   const [timerActive, setTimerActive] = useState(true);
 
   useEffect(() => {
+    // Original condition for timer
     if (!timerActive || showResults || timeLeft <= 0) return;
     
     const interval = setInterval(() => {
@@ -41,7 +43,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
 
   useEffect(() => {
     if (timeLeft === 0 && !showResults) {
-        setTimerActive(false);
+        setTimeout(() => setTimerActive(false), 0);
         // Force finish when time up? Or just show 0? 
         // For now, let's keep it visible at 0.
     }
@@ -80,7 +82,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
         if (selectedAnswer !== undefined) {
             newRevealed.add(selectedAnswer);
         }
-        setRevealedIndices(newRevealed);
+        setTimeout(() => setRevealedIndices(newRevealed), 0);
     } else {
         setRevealedIndices(new Set());
     }
@@ -97,27 +99,33 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
     setRevealedIndices(newSet);
   };
 
-  const handleReadAloud = () => {
-    if (isReading) {
-      window.speechSynthesis.cancel();
-      setIsReading(false);
-      return;
+  /* Refactored to use useTextToSpeech hook with Rate Control */
+  const { speak, stop, isPlaying, isPaused, resume, pause } = useTextToSpeech();
+  const [rate, setRate] = useState(1.0);
+
+  const handleQuit = () => {
+    // Just end the quiz status without saving to History (attempts table)
+    // The session is already saved in DB per-answer/step in useQuizStore
+    if (isActive) {
+        endQuiz();
     }
+    onBack();
+  };
 
-    if (!currentQuestion) return;
+  // Stop audio when unmounting or changing questions
+  useEffect(() => {
+    return () => stop();
+  }, [currentQuestionIndex]);
 
-    const textToRead = `${localizedContent.question}。 ${t('options')} ${localizedContent.options.join('、')}`;
-    const utterance = new SpeechSynthesisUtterance(textToRead);
-    
-    // Set language for voice
-    // Set language for voice
-    utterance.lang = 'ja-JP';
-
-    utterance.onstart = () => setIsReading(true);
-    utterance.onend = () => setIsReading(false);
-    utterance.onerror = () => setIsReading(false);
-
-    window.speechSynthesis.speak(utterance);
+  const handleReadAloud = () => {
+    if (isPlaying) {
+      if (isPaused) resume();
+      else pause();
+    } else {
+        if (!currentQuestion) return;
+        const textToRead = `${localizedContent.question}。 ${t('options')} ${localizedContent.options.join('、')}`;
+        speak(textToRead, { rate, lang: 'ja-JP' });
+    }
   };
 
   // Keyboard Shortcuts
@@ -125,14 +133,30 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (showResults) return;
 
+      // Helper function for handling answers
+      const handleAnswer = (optionIndex: number) => {
+        if (!hasAnswered) {
+          setAnswer(currentQuestionIndex, optionIndex);
+        }
+      };
+
       switch (e.key) {
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-          const optionIndex = parseInt(e.key) - 1;
-          if (!hasAnswered) setAnswer(currentQuestionIndex, optionIndex);
+        case '1': {
+          handleAnswer(0);
           break;
+        }
+        case '2': {
+          handleAnswer(1);
+          break;
+        }
+        case '3': {
+          handleAnswer(2);
+          break;
+        }
+        case '4': {
+          handleAnswer(3);
+          break;
+        }
         case 'ArrowRight':
         case 'Enter':
           if (hasAnswered) nextQuestion();
@@ -158,16 +182,9 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentQuestionIndex, answers, showResults, hasAnswered]);
+  }, [currentQuestionIndex, answers, showResults, hasAnswered, nextQuestion, prevQuestion, setAnswer, handleReadAloud, resetQuiz, handleQuit]);
 
-  const handleQuit = () => {
-    // Just end the quiz status without saving to History (attempts table)
-    // The session is already saved in DB per-answer/step in useQuizStore
-    if (isActive) {
-        endQuiz();
-    }
-    onBack();
-  };
+
 
   if (showResults) {
     return (
@@ -182,6 +199,8 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
   }
 
   if (!currentQuestion) return null;
+
+
 
   return (
     <div className="max-w-3xl mx-auto py-4 md:py-8 px-2 md:px-0 pb-32 md:pb-8">
@@ -274,23 +293,33 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                         <h2 className="text-xl md:text-3xl font-black italic tracking-tighter text-white leading-tight uppercase flex-grow">
                             {localizedContent.question}
                         </h2>
-                        <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={handleReadAloud}
-                            className={clsx(
-                                "p-2 md:p-3 rounded-2xl border transition-all shrink-0 self-start",
-                                isReading 
-                                    ? "bg-accent/20 border-accent text-accent animate-pulse" 
-                                    : "bg-slate-900/50 border-slate-800 text-slate-500 hover:text-accent hover:border-accent/50"
-                            )}
-                            title="Read Aloud"
-                        >
-                            <div className="flex flex-col items-center gap-1">
-                                {isReading ? <VolumeX className="w-5 h-5 md:w-6 md:h-6" /> : <Volume2 className="w-5 h-5 md:w-6 md:h-6" />}
-                                <span className="hidden xl:block text-[8px] font-black text-accent/60">[V]</span>
-                            </div>
-                        </motion.button>
+                        <div className="flex items-center gap-2 self-start shrink-0">
+                             {/* Rate Control */}
+                            <button 
+                                onClick={() => setRate(r => r === 1.0 ? 1.5 : r === 1.5 ? 2.0 : r === 2.0 ? 0.8 : 1.0)}
+                                className="px-2 py-1 rounded-lg bg-slate-900/50 border border-slate-800 text-[10px] font-mono font-bold text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
+                            >
+                                {rate}x
+                            </button>
+
+                            <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={handleReadAloud}
+                                className={clsx(
+                                    "p-2 md:p-3 rounded-2xl border transition-all",
+                                    isPlaying 
+                                        ? "bg-accent/20 border-accent text-accent animate-pulse" 
+                                        : "bg-slate-900/50 border-slate-800 text-slate-500 hover:text-accent hover:border-accent/50"
+                                )}
+                                title="Read Aloud"
+                            >
+                                <div className="flex flex-col items-center gap-1">
+                                    {isPlaying ? <VolumeX className="w-5 h-5 md:w-6 md:h-6" /> : <Volume2 className="w-5 h-5 md:w-6 md:h-6" />}
+                                    <span className="hidden xl:block text-[8px] font-black text-accent/60">[V]</span>
+                                </div>
+                            </motion.button>
+                        </div>
                     </div>
                 </div>
 

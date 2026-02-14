@@ -17,11 +17,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.21",
     "clsx": "^2.1.1",
     "cors": "^2.8.6",
     "dexie": "^4.3.0",
     "express": "^5.2.1",
     "framer-motion": "^12.31.3",
+    "lru-cache": "^11.2.6",
     "lucide-react": "^0.563.0",
     "nodemailer": "^8.0.1",
     "pg": "^8.18.0",

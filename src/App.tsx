@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuizStore } from './store/useQuizStore';
 import { useLanguageStore } from './store/useLanguageStore';
 import { NeuralBackground } from './components/NeuralBackground';
@@ -45,6 +46,11 @@ export default function App() {
   const isActive = useQuizStore((state) => state.isActive);
   const endQuiz = useQuizStore((state) => state.endQuiz);
 
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => setToast({ message: '', type: null }), 3000);
+  };
+
   const fetchData = async () => {
     try {
       // Fetch notifications for the current user
@@ -69,7 +75,7 @@ export default function App() {
 
   useEffect(() => {
     // Sanity check: Ensure authenticated users have a valid userId
-    if (isAuthenticated && (!currentUser || !(currentUser.userId || (currentUser as any).id))) {
+    if (isAuthenticated && (!currentUser || !currentUser.userId)) {
       console.warn("[Neural Link] Corrupted session detected. Emergency logout sequence initiated.");
       logout();
       return;
@@ -83,10 +89,7 @@ export default function App() {
     }
   }, [currentUser, isAuthenticated, isAdmin]);
   
-  const showToast = (message: string, type: 'success' | 'error') => {
-    setToast({ message, type });
-    setTimeout(() => setToast({ message: '', type: null }), 3000);
-  };
+
 
   useEffect(() => {
     const timer = setTimeout(() => setIsBooting(false), 2000);

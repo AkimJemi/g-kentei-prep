@@ -1,0 +1,4 @@
+src/components/HistoryView.tsx(6,1): error TS6133: 'Question' is declared but its value is never read.
+src/components/Statistics.tsx(5,1): error TS6133: 'Question' is declared but its value is never read.
+src/components/StudyMode.tsx(7,18): error TS6133: 'ChevronRight' is declared but its value is never read.
+src/components/UpgradeModal.tsx(11,13): error TS6133: 'status' is declared but its value is never read.

@@ -8,7 +8,7 @@ interface UpgradeModalProps {
 }
 
 export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
-    const { status, upgrade } = useSubscriptionStore();
+    const { upgrade } = useSubscriptionStore();
 
     const handleUpgrade = (plan: 'basic' | 'premium') => {
         // Upgrade logic (Redirect to Nexus Prime Checkout)
