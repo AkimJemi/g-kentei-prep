@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuizStore } from './store/useQuizStore';
 import { useLanguageStore } from './store/useLanguageStore';
 import { NeuralBackground } from './components/NeuralBackground';

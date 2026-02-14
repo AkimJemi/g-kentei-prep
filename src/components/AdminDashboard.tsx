@@ -37,6 +37,7 @@ interface AdminTodo {
     priority: string;
     status: string;
     category: string;
+    createdAt?: string | Date;
 }
 
 
@@ -1042,7 +1043,7 @@ export const AdminDashboard: React.FC = () => {
                                       </h3>
                                       <div className="flex items-center gap-3 mt-1">
                                           <span className="text-[9px] font-black uppercase text-slate-600 tracking-widest">
-                                              {new Date(todo.createdAt).toLocaleDateString('ja-JP')}
+                                              {todo.createdAt ? new Date(todo.createdAt).toLocaleDateString('ja-JP') : ''}
                                           </span>
                                           {todo.status !== 'completed' && (
                                               <span className="px-2 py-0.5 bg-accent/10 text-accent text-[8px] font-black uppercase rounded">In Progress</span>
