@@ -333,13 +333,21 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                         
                         return (
                             <div key={idx} className="space-y-2">
-                                <motion.button
+                                <motion.div
                                     initial={false}
                                     animate={showWrong ? { x: [-2, 2, -2, 2, 0] } : {}}
                                     transition={{ duration: 0.2 }}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            hasAnswered ? toggleReveal(idx) : setAnswer(currentQuestionIndex, idx);
+                                        }
+                                    }}
                                     onClick={() => hasAnswered ? toggleReveal(idx) : setAnswer(currentQuestionIndex, idx)}
                                     className={clsx(
-                                        "w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-colors duration-200 flex items-center justify-between relative overflow-hidden active:scale-[0.99] min-h-[64px]",
+                                        "w-full text-left p-4 md:p-5 rounded-2xl border-2 transition-colors duration-200 flex items-center justify-between relative overflow-hidden active:scale-[0.99] min-h-[64px] select-text",
                                         hasAnswered 
                                             ? isThisCorrect 
                                                 ? "border-green-500/40 bg-green-500/10 text-green-400" 
@@ -347,14 +355,14 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                                                     ? "border-red-500/40 bg-red-500/10 text-red-500" 
                                                     : isRevealed
                                                         ? "border-slate-700 bg-slate-800/60 text-slate-200"
-                                                        : "border-transparent bg-slate-900/50 text-slate-600 opacity-60 hover:opacity-100"
+                                                        : "border-transparent bg-slate-900/50 text-slate-600 opacity-60 hover:opacity-100 cursor-pointer"
                                             : isSelected
-                                                ? "border-accent bg-accent/10 text-white shadow-sm"
-                                                : "border-slate-800/50 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-800/60 text-slate-400 hover:text-slate-200"
+                                                ? "border-accent bg-accent/10 text-white shadow-sm cursor-pointer"
+                                                : "border-slate-800/50 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-800/60 text-slate-400 hover:text-slate-200 cursor-pointer"
                                     )}
                                 >
-                                    <span className="font-bold tracking-tight text-sm md:text-base relative z-10 pr-8">{option}</span>
-                                    <div className="relative z-10 flex items-center gap-3">
+                                    <span className="font-bold tracking-tight text-sm md:text-base relative z-10 pr-8 pointer-events-auto">{option}</span>
+                                    <div className="relative z-10 flex items-center gap-3 pointer-events-none">
                                         {(hasAnswered && isThisCorrect) && <CheckCircle2 className="w-5 h-5 text-green-500" />}
                                         {showWrong && <XCircle className="w-5 h-5 text-red-500" />}
                                         
@@ -372,7 +380,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                                             [{idx + 1}]
                                         </div>
                                     </div>
-                                </motion.button>
+                                </motion.div>
                                 
                                 <AnimatePresence>
                                     {hasAnswered && isRevealed && (
