@@ -131,7 +131,8 @@ const translations: Record<string, string> = {
     resume_seq: 'シーケンス再開',
     weak_spot_detected: '脆弱ノード検出',
     critical_nodes_id: '個のクリティカル・ノードが再校正を必要としています。スコア最適化のために重点的に学習してください。',
-    initialize_targeted: '11のニューラル・ドメインにわたる標的型知識注入を初期化します。'
+    initialize_targeted: '11のニューラル・ドメインにわたる標的型知識注入を初期化します。',
+    no_specific_explanation: 'この選択肢に対する個別の解説はありません。全体解説を確認してください。'
 };
 
 export const useLanguageStore = create<LanguageState>()(
