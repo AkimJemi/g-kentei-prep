@@ -2,8 +2,8 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import { GoogleGenAI } from '@google/genai';
 
-// Initialize Gemini client with the NEW key provided by the user
-const ai = new GoogleGenAI({ apiKey: 'AIzaSyCHWTkWvvsnjWK5L-T-c_SO0fyF7AHKScg' });
+// Initialize Gemini client from env (set GEMINI_API_KEY in .env)
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const connectionString = 'postgresql://g_kentei_prep_app_db_user:0vZFHekJvsuMexPcBCKx5Ix4Noy7WZJO@dpg-d63nv6cr85hc73bckig0-a.oregon-postgres.render.com/g_kentei_prep_app_db';
 const pool = new Pool({
