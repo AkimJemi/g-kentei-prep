@@ -7,6 +7,16 @@ import { dirname, join } from 'path';
 import { cache } from './cache.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+/*
+process.on('uncaughtException', (err) => {
+  console.error('[CRITICAL] Uncaught Exception:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+*/
 
 // Postgres Connection Pool
 // In Render, the environment variable DATABASE_URL will be provided.
@@ -19,150 +29,167 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // Initialize Database Schema
 const initDB = async () => {
-  const client = await pool.connect();
+  let client;
   try {
-    console.log('[Neural DB] Applying Schema Manifest...');
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS g_kentei_users (
-        userId TEXT PRIMARY KEY,
-        nickname TEXT,
-        role TEXT,
-        status TEXT DEFAULT 'active',
-        joinedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS g_kentei_attempts (
-        id SERIAL PRIMARY KEY,
-        userId TEXT REFERENCES g_kentei_users(userId),
-        date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        score INTEGER,
-        totalQuestions INTEGER,
-        category TEXT,
-        wrongQuestionIds TEXT,
-        userAnswers TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS g_kentei_sessions (
-        userId TEXT REFERENCES g_kentei_users(userId),
-        category TEXT,
-        currentQuestionIndex INTEGER,
-        answers TEXT,
-        lastUpdated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY(userId, category)
-      );
-
-      CREATE TABLE IF NOT EXISTS g_kentei_messages (
-        id SERIAL PRIMARY KEY,
-        userId TEXT REFERENCES g_kentei_users(userId),
-        name TEXT,
-        email TEXT,
-        topic TEXT,
-        message TEXT,
-        reply TEXT,
-        repliedAt TIMESTAMP,
-        status TEXT DEFAULT 'unread',
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS g_kentei_notifications (
-        id SERIAL PRIMARY KEY,
-        userId TEXT REFERENCES g_kentei_users(userId),
-        title TEXT,
-        content TEXT,
-        type TEXT DEFAULT 'info',
-        isRead INTEGER DEFAULT 0,
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS g_kentei_submitted_questions (
-        id SERIAL PRIMARY KEY,
-        category TEXT,
-        question TEXT,
-        options TEXT,
-        correctAnswer INTEGER,
-        explanation TEXT,
-        status TEXT DEFAULT 'pending',
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS g_kentei_todos (
-        id SERIAL PRIMARY KEY,
-        task TEXT,
-        status TEXT DEFAULT 'pending',
-        priority TEXT DEFAULT 'medium',
-        category TEXT DEFAULT 'general',
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS g_kentei_questions (
-        id SERIAL PRIMARY KEY,
-        category TEXT,
-        question TEXT,
-        options TEXT,
-        correctAnswer INTEGER,
-        explanation TEXT,
-        translations TEXT,
-        source TEXT DEFAULT 'system',
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        optionExplanations TEXT
-      );
-      
-      CREATE TABLE IF NOT EXISTS g_kentei_public_chat (
+    console.log('[Neural DB] Attempting to acquire client from pool...');
+    client = await pool.connect();
+    console.log('[Neural DB] Client acquired. Applying Schema Manifest...');
+    const tables = [
+      {
+        name: 'g_kentei_users',
+        query: `CREATE TABLE IF NOT EXISTS g_kentei_users (
+          userId TEXT PRIMARY KEY,
+          nickname TEXT,
+          role TEXT,
+          status TEXT DEFAULT 'active',
+          joinedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );`
+      },
+      {
+        name: 'g_kentei_attempts',
+        query: `CREATE TABLE IF NOT EXISTS g_kentei_attempts (
           id SERIAL PRIMARY KEY,
           userId TEXT REFERENCES g_kentei_users(userId),
+          date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          score INTEGER,
+          totalQuestions INTEGER,
+          category TEXT,
+          wrongQuestionIds TEXT,
+          userAnswers TEXT
+        );`
+      },
+      {
+        name: 'g_kentei_sessions',
+        query: `CREATE TABLE IF NOT EXISTS g_kentei_sessions (
+          userId TEXT REFERENCES g_kentei_users(userId),
+          category TEXT,
+          currentQuestionIndex INTEGER,
+          answers TEXT,
+          lastUpdated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY(userId, category)
+        );`
+      },
+      {
+        name: 'g_kentei_messages',
+        query: `CREATE TABLE IF NOT EXISTS g_kentei_messages (
+          id SERIAL PRIMARY KEY,
+          userId TEXT REFERENCES g_kentei_users(userId),
+          name TEXT,
+          email TEXT,
+          topic TEXT,
           message TEXT,
-          replyTo INTEGER, 
+          reply TEXT,
+          repliedAt TIMESTAMP,
+          status TEXT DEFAULT 'unread',
           createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
+        );`
+      },
+      {
+        name: 'g_kentei_notifications',
+        query: `CREATE TABLE IF NOT EXISTS g_kentei_notifications (
+          id SERIAL PRIMARY KEY,
+          userId TEXT REFERENCES g_kentei_users(userId),
+          title TEXT,
+          content TEXT,
+          type TEXT DEFAULT 'info',
+          isRead INTEGER DEFAULT 0,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );`
+      },
+      {
+        name: 'g_kentei_submitted_questions',
+        query: `CREATE TABLE IF NOT EXISTS g_kentei_submitted_questions (
+          id SERIAL PRIMARY KEY,
+          category TEXT,
+          question TEXT,
+          options TEXT,
+          correctAnswer INTEGER,
+          explanation TEXT,
+          status TEXT DEFAULT 'pending',
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );`
+      },
+      {
+        name: 'g_kentei_todos',
+        query: `CREATE TABLE IF NOT EXISTS g_kentei_todos (
+          id SERIAL PRIMARY KEY,
+          task TEXT,
+          status TEXT DEFAULT 'pending',
+          priority TEXT DEFAULT 'medium',
+          category TEXT DEFAULT 'general',
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );`
+      },
+      {
+        name: 'g_kentei_questions',
+        query: `CREATE TABLE IF NOT EXISTS g_kentei_questions (
+          id SERIAL PRIMARY KEY,
+          category TEXT,
+          question TEXT,
+          options TEXT,
+          correctAnswer INTEGER,
+          explanation TEXT,
+          source TEXT DEFAULT 'system',
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          optionExplanations TEXT
+        );`
+      },
+      {
+        name: 'g_kentei_public_chat',
+        query: `CREATE TABLE IF NOT EXISTS g_kentei_public_chat (
+            id SERIAL PRIMARY KEY,
+            userId TEXT REFERENCES g_kentei_users(userId),
+            message TEXT,
+            replyTo INTEGER, 
+            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );`
+      },
+      {
+        name: 'g_kentei_categories',
+        query: `CREATE TABLE IF NOT EXISTS g_kentei_categories (
+          id TEXT PRIMARY KEY,
+          title TEXT,
+          icon TEXT,
+          color TEXT,
+          bg TEXT,
+          description TEXT,
+          displayOrder INTEGER DEFAULT 0
+        );`
+      },
+      {
+        name: 'subscriptions',
+        query: `CREATE TABLE IF NOT EXISTS subscriptions (
+          id SERIAL PRIMARY KEY,
+          userId TEXT REFERENCES g_kentei_users(userId),
+          projectScope TEXT,
+          status TEXT,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );`
+      }
+    ];
 
-      CREATE TABLE IF NOT EXISTS g_kentei_categories (
-        id TEXT PRIMARY KEY,
-        title TEXT,
-        icon TEXT,
-        color TEXT,
-        bg TEXT,
-        description TEXT,
-        displayOrder INTEGER DEFAULT 0
-      );
-    `);
-
-    // Seed Categories if empty
-    const catRes = await client.query('SELECT count(*) as count FROM g_kentei_categories');
-    if (parseInt(catRes.rows[0].count) === 0) {
-        console.log('[Neural DB] Seeding Initial Categories...');
-        const initialCategories = [
-            { id: 'ai_basics', title: '人工知能（AI）とは', icon: 'Brain', color: 'text-blue-400', bg: 'bg-blue-400/10', description: 'AIの定義、歴史、基礎知識を学びます。' },
-            { id: 'ai_trends', title: '人工知能をめぐる動向', icon: 'Cpu', color: 'text-indigo-400', bg: 'bg-indigo-400/10', description: '最新のAI技術開発と社会動向を確認します。' },
-            { id: 'ml_methods', title: '機械学習の具体的手法', icon: 'Database', color: 'text-emerald-400', bg: 'bg-emerald-400/10', description: '学習アルゴリズムとモデル構築の基礎を学習します。' },
-            { id: 'dl_overview', title: 'ディープラーニングの概要', icon: 'Zap', color: 'text-amber-400', bg: 'bg-amber-400/10', description: 'ニューラルネットワークの基礎理論を習得します。' },
-            { id: 'dl_methods', title: 'ディープラーニングの手法', icon: 'Layers', color: 'text-rose-400', bg: 'bg-rose-400/10', description: 'CNN, RNN等の具体的なニューラルネット手法を学びます。' },
-            { id: 'dl_implementation', title: 'ディープラーニングの社会実装に向けて', icon: 'Shield', color: 'text-purple-400', bg: 'bg-purple-400/10', description: 'ビジネス実装、プロジェクト管理、倫理について学びます。' },
-            { id: 'math_stats', title: '数理・統計', icon: 'Terminal', color: 'text-slate-400', bg: 'bg-slate-400/10', description: 'AI理解に必要な数学的基礎を固めます。' },
-            { id: 'law_contracts', title: '法律・契約', icon: 'BookOpen', color: 'text-teal-400', bg: 'bg-teal-400/10', description: '知的財産権、著作権、個人情報保護法等を学びます。' },
-            { id: 'ethics_governance', title: '倫理・ガバナンス', icon: 'Award', color: 'text-orange-400', bg: 'bg-orange-400/10', description: 'AI倫理指針とリスクガバナンスを学習します。' }
-        ];
-
-        for (const [idx, cat] of initialCategories.entries()) {
-            await client.query(`
-                INSERT INTO g_kentei_categories (id, title, icon, color, bg, description, displayOrder)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                ON CONFLICT (id) DO UPDATE SET
-                    title = EXCLUDED.title,
-                    icon = EXCLUDED.icon,
-                    color = EXCLUDED.color,
-                    bg = EXCLUDED.bg,
-                    description = EXCLUDED.description,
-                    displayOrder = EXCLUDED.displayOrder
-            `, [cat.id, cat.title, cat.icon, cat.color, cat.bg, cat.description, idx]);
-        }
-        console.log('[Neural DB] Categories Seeded.');
+/*
+    for (const table of tables) {
+      console.log(`[Neural DB] Synchronizing table: ${table.name}`);
+      try {
+        await client.query(table.query);
+      } catch (tableErr) {
+        console.error(`[Neural DB] Failed to sync table ${table.name}:`, tableErr.message);
+        // We don't necessarily exit if one table fails, unless it's critical
+      }
     }
+*/
+
+    // Categories are now seeded directly in Japanese. No need to re-seed.
+    console.log('[Neural DB] Category initialization skipped. Expecting Japanese Categories directly from DB.');
 
     // Seed Admin User if empty
     const userRes = await client.query('SELECT count(*) as count FROM g_kentei_users');
@@ -182,7 +209,9 @@ const initDB = async () => {
   }
 };
 
-initDB().then(() => {
+initDB()
+  .then(() => {
+    console.log('[Neural DB] Initialization complete.');
     // Cache Warming
     console.log('[Neural Cache] Warming up memory banks...');
     
@@ -191,6 +220,7 @@ initDB().then(() => {
         .then(res => {
             cache.set('static', 'categories', res.rows);
             console.log(`[Neural Cache] Categories warmed: ${res.rows.length} items`);
+            console.log(`[Neural Cache] Category IDs: ${res.rows.map(c => c.id).join(', ')}`);
         })
         .catch(err => console.error('[Neural Cache] Failed to warm categories:', err));
 
@@ -200,8 +230,7 @@ initDB().then(() => {
             const questions = res.rows.map(q => ({
                 ...q,
                 options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
-                optionExplanations: q.optionexplanations ? (typeof q.optionexplanations === 'string' ? JSON.parse(q.optionexplanations) : q.optionexplanations) : undefined,
-                translations: q.translations ? (typeof q.translations === 'string' ? JSON.parse(q.translations) : q.translations) : undefined
+                optionExplanations: q.optionexplanations ? (typeof q.optionexplanations === 'string' ? JSON.parse(q.optionexplanations) : q.optionexplanations) : undefined
             }));
             
             // Warm the "all questions" query
@@ -210,7 +239,7 @@ initDB().then(() => {
 
             // Warm the "paginated page 1" query
             // Simulate req.query for default params
-            const defaultParams = { page: '1', limit: '20' };
+            // const defaultParams = { page: '1', limit: '20' };
             // We can't easily replicate getPaginatedData logic without calling it, 
             // but for now, warming the raw 'all' list covers the most expensive part if we cache the transformed rows.
             // Actually, getPaginatedData generates SQL. 
@@ -219,7 +248,10 @@ initDB().then(() => {
             console.log(`[Neural Cache] Questions warmed: ${questions.length} items`);
         })
         .catch(err => console.error('[Neural Cache] Failed to warm questions:', err));
-});
+  })
+  .catch(err => {
+    console.error('[CRITICAL] initDB Failed:', err);
+  });
 
 // Robust Column Check / Migration (Postgres version)
 const migrateTable = async (tableName, columns) => {
@@ -247,6 +279,7 @@ const migrateTable = async (tableName, columns) => {
 };
 
 // Start migrations
+/*
 (async () => {
     await migrateTable('g_kentei_messages', [
         { name: 'userId', type: 'TEXT' },
@@ -258,6 +291,7 @@ const migrateTable = async (tableName, columns) => {
         { name: 'replyTo', type: 'INTEGER' }
     ]);
 })();
+*/
 
 // Helper for Paginated / Filtered queries (Postgres version)
 const getPaginatedData = async (tableName, req, searchColumns = []) => {
@@ -431,24 +465,25 @@ app.get('/api/questions', async (req, res) => {
 
     const usePagination = page !== undefined || limit !== undefined || search !== undefined || category !== undefined;
     
+
+
     if (!usePagination) {
-        const result = await pool.query('SELECT * FROM g_kentei_questions');
+        const result = await pool.query('SELECT * FROM g_kentei_questions ORDER BY id ASC');
         const questions = result.rows.map(q => ({
             ...q,
+            correctAnswer: q.correctanswer,
             options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
-            optionExplanations: q.optionexplanations ? (typeof q.optionexplanations === 'string' ? JSON.parse(q.optionexplanations) : q.optionexplanations) : undefined,
-            translations: q.translations ? (typeof q.translations === 'string' ? JSON.parse(q.translations) : q.translations) : undefined
+            optionExplanations: q.optionexplanations ? (typeof q.optionexplanations === 'string' ? JSON.parse(q.optionexplanations) : q.optionexplanations) : undefined
         }));
         if (!userId) cache.set('query', cacheKey, questions);
         return res.json(questions);
     }
 
-    const { data, pagination } = await getPaginatedData('g_kentei_questions', req, ['question', 'category', 'explanation']);
     const formatted = data.map(q => ({
         ...q,
+        correctAnswer: q.correctanswer,
         options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
-        optionExplanations: q.optionexplanations ? (typeof q.optionexplanations === 'string' ? JSON.parse(q.optionexplanations) : q.optionexplanations) : undefined,
-        translations: q.translations ? (typeof q.translations === 'string' ? JSON.parse(q.translations) : q.translations) : undefined
+        optionExplanations: q.optionexplanations ? (typeof q.optionexplanations === 'string' ? JSON.parse(q.optionexplanations) : q.optionexplanations) : undefined
     }));
     
     const response = { data: formatted, pagination };
@@ -461,13 +496,13 @@ app.get('/api/questions', async (req, res) => {
 });
 
 app.post('/api/admin/questions', async (req, res) => {
-   const { category, question, options, correctAnswer, explanation, translations, source } = req.body;
+   const { category, question, options, correctAnswer, explanation, source } = req.body;
    try {
      const result = await pool.query(`
-       INSERT INTO g_kentei_questions (category, question, options, correctAnswer, explanation, translations, source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       INSERT INTO g_kentei_questions (category, question, options, correctAnswer, explanation, source)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id
-     `, [category, question, JSON.stringify(options), correctAnswer, explanation, JSON.stringify(translations || {}), source || 'admin']);
+     `, [category, question, JSON.stringify(options), correctAnswer, explanation, source || 'admin']);
      cache.invalidate('query');
      res.json({ success: true, id: result.rows[0].id });
    } catch (err) {
@@ -476,13 +511,13 @@ app.post('/api/admin/questions', async (req, res) => {
 });
 
 app.put('/api/admin/questions/:id', async (req, res) => {
-    const { category, question, options, correctAnswer, explanation, translations } = req.body;
+    const { category, question, options, correctAnswer, explanation } = req.body;
     try {
         await pool.query(`
             UPDATE g_kentei_questions 
-            SET category = $1, question = $2, options = $3, correctAnswer = $4, explanation = $5, translations = $6
-            WHERE id = $7
-        `, [category, question, JSON.stringify(options), correctAnswer, explanation, JSON.stringify(translations || {}), req.params.id]);
+            SET category = $1, question = $2, options = $3, correctAnswer = $4, explanation = $5
+            WHERE id = $6
+        `, [category, question, JSON.stringify(options), correctAnswer, explanation, req.params.id]);
         cache.invalidate('query');
         res.json({ success: true });
     } catch (err) {
@@ -1107,15 +1142,19 @@ app.delete('/api/sessions', async (req, res) => {
 app.get('/api/user-progress/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
-    const qRes = await pool.query('SELECT id, category FROM g_kentei_questions');
+    const qRes = await pool.query('SELECT id, category, correctanswer FROM g_kentei_questions');
     const questions = qRes.rows;
     
     const aRes = await pool.query('SELECT category, wrongQuestionIds, userAnswers FROM g_kentei_attempts WHERE userId = $1', [userId]);
     const attempts = aRes.rows;
 
+    const sRes = await pool.query('SELECT * FROM g_kentei_sessions WHERE userId = $1', [userId]);
+    const sessions = sRes.rows;
+
     const solvedMap = new Set();
     const failedMap = new Set();
 
+    // Process Attempts First
     attempts.forEach(a => {
         const wrongIds = typeof a.wrongQuestionIds === 'string' ? JSON.parse(a.wrongQuestionIds || '[]') : a.wrongQuestionIds;
         const userAnswers = typeof a.userAnswers === 'string' ? JSON.parse(a.userAnswers || '{}') : a.userAnswers;
@@ -1128,6 +1167,30 @@ app.get('/api/user-progress/:userId', async (req, res) => {
             } else {
                 if (!solvedMap.has(id)) {
                     failedMap.add(id);
+                }
+            }
+        });
+    });
+
+    // Process Active Sessions for Real-time Updates
+    sessions.forEach(session => {
+        const catId = session.category;
+        const answers = typeof session.answers === 'string' ? JSON.parse(session.answers || '[]') : session.answers;
+        
+        const catQuestions = questions.filter(q => q.category === catId).sort((a, b) => a.id - b.id);
+        
+        answers.forEach((ans, idx) => {
+            if (ans !== null && ans !== undefined && catQuestions[idx]) {
+                const q = catQuestions[idx];
+                const isCorrect = ans === q.correctanswer;
+                
+                if (isCorrect) {
+                    solvedMap.add(q.id);
+                    failedMap.delete(q.id);
+                } else {
+                    if (!solvedMap.has(q.id)) {
+                        failedMap.add(q.id);
+                    }
                 }
             }
         });
@@ -1266,6 +1329,6 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const PORT = process.env.PORT || 3012;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Neural Backend connected to Postgres Sector: http://localhost:${PORT}`);
 });

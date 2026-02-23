@@ -403,7 +403,10 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                                                         isThisCorrect ? "bg-green-500" : "bg-slate-600"
                                                     )} />
                                                     <p className="font-medium">
-                                                        {optionExplanation || localizedContent.explanation || t('no_specific_explanation')}
+                                                        {isThisCorrect 
+                                                            ? (optionExplanation || localizedContent.explanation || t('no_specific_explanation'))
+                                                            : (optionExplanation || t('no_specific_explanation'))
+                                                        }
                                                     </p>
                                                 </div>
                                             </div>

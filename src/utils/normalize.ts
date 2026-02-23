@@ -19,7 +19,8 @@ export const normalizeKeys = (item: any): any => {
         isread: 'isRead',
         createdat: 'createdAt',
         correctanswer: 'correctAnswer',
-        repliedat: 'repliedAt'
+        repliedat: 'repliedAt',
+        optionexplanations: 'optionExplanations'
     };
 
     const newItem: any = {};
@@ -38,7 +39,7 @@ export const normalizeKeys = (item: any): any => {
         }
 
         // Handle JSON strings (Postgres sometimes returns them as strings if not using jsonb)
-        if (typeof value === 'string' && ['wrongquestionids', 'useranswers', 'options', 'translations', 'answers'].includes(key.toLowerCase())) {
+        if (typeof value === 'string' && ['wrongquestionids', 'useranswers', 'options', 'translations', 'answers', 'optionexplanations'].includes(key.toLowerCase())) {
             try {
                 finalValue = JSON.parse(value);
             } catch {

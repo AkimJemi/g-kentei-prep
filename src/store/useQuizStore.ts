@@ -5,6 +5,7 @@ import { db } from '../db/db';
 import { useAuthStore } from './useAuthStore';
 import { queryClient } from '../lib/react-query';
 import { QUESTIONS_QUERY_KEY, fetchQuestions } from '../hooks/useQuestions';
+import { USER_PROGRESS_QUERY_KEY } from '../hooks/useUserProgress';
 
 // Helper to fetch all questions
 const fetchAllQuestions = async (userId?: string): Promise<{ questions: Question[]; error?: string; limitReached?: boolean }> => {
@@ -132,6 +133,7 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
                     answers: newAnswers,
                     lastUpdated: new Date()
                 });
+                queryClient.invalidateQueries({ queryKey: [USER_PROGRESS_QUERY_KEY, userId] });
             }
 
             return { answers: newAnswers };
@@ -241,6 +243,7 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
                     wrongQuestionIds,
                     userAnswers
                 });
+                queryClient.invalidateQueries({ queryKey: [USER_PROGRESS_QUERY_KEY, userId] });
                 console.log("[Neural Store] Neural Record Synchronized successfully.");
             } catch (err) {
                 console.error("[Neural Store] Synchronization failure:", err);
