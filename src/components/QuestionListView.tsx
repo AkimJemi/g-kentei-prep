@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Play, Search } from 'lucide-react';
 import { useQuestions } from '../hooks/useQuestions';
@@ -23,6 +23,7 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
   const [search, setSearch] = useState('');
   const [focusedIdx, setFocusedIdx] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // カテゴリに該当する問題のみ（元のインデックスを保持）
   const categoryQuestions = allQuestions
@@ -33,57 +34,50 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
     q.question.toLowerCase().includes(search.toLowerCase())
   );
 
-  // キーボードショートカット
+  // フォーカス変更時に自動スクロール
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Tab → 検索バーにフォーカス
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        searchRef.current?.focus();
-        return;
+    itemRefs.current[focusedIdx]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+    });
+  }, [focusedIdx]);
+
+  // キーボードショートカット
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Tab → 検索バーにフォーカス
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      searchRef.current?.focus();
+      return;
+    }
+
+    // 入力中は q/w/e を通常入力として扱う
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (e.key === 'Escape') {
+        setSearch('');
+        (e.target as HTMLElement).blur();
       }
+      return;
+    }
 
-      // 入力中は q/w/e を通常入力として扱う
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        // Escape → 検索を解除してフォーカスを外す
-        if (e.key === 'Escape') {
-          setSearch('');
-          (e.target as HTMLElement).blur();
-        }
-        return;
-      }
+    const key = e.key.toLowerCase();
 
-      const key = e.key.toLowerCase();
+    if (key === 'b' || e.key === 'Escape') { onBack(); return; }
+    // w → 次の問題、q → 前の問題
+    if (key === 'w') { setFocusedIdx(prev => Math.min(prev + 1, filtered.length - 1)); return; }
+    if (key === 'q') { setFocusedIdx(prev => Math.max(prev - 1, 0)); return; }
+    // e → 選択してクイズ開始
+    if (key === 'e') {
+      const q = filtered[focusedIdx];
+      if (q) onStartFromQuestion(categoryId, q.globalIdx);
+      return;
+    }
+  }, [onBack, onStartFromQuestion, filtered, focusedIdx, categoryId]);
 
-      // B / Escape → 戻る
-      if (key === 'b' || e.key === 'Escape') {
-        onBack();
-        return;
-      }
-
-      // q → 次の問題にフォーカス
-      if (key === 'q') {
-        setFocusedIdx(prev => Math.min(prev + 1, filtered.length - 1));
-        return;
-      }
-
-      // w → 前の問題にフォーカス
-      if (key === 'w') {
-        setFocusedIdx(prev => Math.max(prev - 1, 0));
-        return;
-      }
-
-      // e → フォーカス中の問題を選択（ここから開始）
-      if (key === 'e') {
-        const q = filtered[focusedIdx];
-        if (q) onStartFromQuestion(categoryId, q.globalIdx);
-        return;
-      }
-    };
-
+  useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onBack, onStartFromQuestion, filtered, focusedIdx, categoryId]);
+  }, [handleKeyDown]);
 
   // 検索が変わったらフォーカスをリセット
   useEffect(() => {
@@ -146,6 +140,7 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
           {filtered.map((q, idx) => (
             <motion.div
               key={q.id}
+              ref={(el) => { itemRefs.current[idx] = el; }}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: idx * 0.015 }}
