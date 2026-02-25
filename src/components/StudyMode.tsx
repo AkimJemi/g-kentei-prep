@@ -53,23 +53,33 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice, onShowQue
     visible: { opacity: 1, scale: 1, y: 0 }
   };
 
+  const listShortcuts = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
+
   React.useEffect(() => {
-    const shortcuts = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+    const practiceShortcuts = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
     
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       const key = e.key.toLowerCase();
-      const index = shortcuts.indexOf(key);
-      
-      if (index !== -1 && categories[index]) {
-        onStartPractice(categories[index].id);
+
+      // 1-0 → 演習スタート
+      const practiceIndex = practiceShortcuts.indexOf(key);
+      if (practiceIndex !== -1 && categories[practiceIndex]) {
+        onStartPractice(categories[practiceIndex].id);
+        return;
+      }
+
+      // qwertyuiop → 問題一覧
+      const listIndex = listShortcuts.indexOf(key);
+      if (listIndex !== -1 && categories[listIndex]) {
+        onShowQuestionList(categories[listIndex].id, categories[listIndex].title);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onStartPractice, categories]);
+  }, [onStartPractice, onShowQuestionList, categories]);
 
   if (questionsLoading || loading) {
       return (
@@ -133,8 +143,9 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice, onShowQue
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
         {categories.map((cat, idx) => {
           const CategoryIcon = ICON_MAP[cat.icon] || HelpCircle;
-          const shortcuts = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-          const shortcut = shortcuts[idx] || (idx + 1).toString();
+          const practiceShortcutKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+          const practiceShortcut = practiceShortcutKeys[idx] || (idx + 1).toString();
+          const listShortcut = listShortcuts[idx] || '';
           const p = progress[cat.id] || { total: 0, solved: 0, failed: 0, remaining: 0 };
  
           return (
@@ -143,8 +154,9 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice, onShowQue
               variants={itemVariants}
               className="group relative p-4 md:p-8 bg-secondary/10 hover:bg-secondary/20 border border-white/[0.04] rounded-2xl md:rounded-3xl text-left transition-all hover:border-accent/30 shadow-xl overflow-hidden flex flex-col h-full"
             >
-              <div className="absolute top-4 right-6 text-[10px] font-black text-slate-600/60 group-hover:text-slate-400 transition-colors hidden xl:block">
-                [{shortcut}]
+              <div className="absolute top-4 right-6 text-[10px] font-black text-slate-600/60 group-hover:text-slate-400 transition-colors hidden xl:flex gap-1.5 items-center">
+                <span className="text-accent/60">[{listShortcut}]</span>
+                <span>[{practiceShortcut}]</span>
               </div>
               <div className="absolute top-0 right-0 w-24 md:w-32 h-24 md:h-32 bg-accent/5 blur-[30px] md:blur-[40px] rounded-full translate-x-10 -translate-y-10 group-hover:bg-accent/10 transition-colors" />
               
@@ -182,6 +194,7 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice, onShowQue
                 >
                   <Zap className="w-3 h-3" />
                   <span>演習</span>
+                  <span className="hidden xl:inline opacity-50 ml-1">[{practiceShortcut}]</span>
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onShowQuestionList(cat.id, cat.title); }}
@@ -189,11 +202,12 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice, onShowQue
                 >
                   <List className="w-3 h-3" />
                   <span>一覧</span>
+                  <span className="hidden xl:inline opacity-50 ml-1 text-accent/70">[{listShortcut}]</span>
                 </button>
               </div>
  
               <div className="absolute bottom-4 right-4 text-xs font-black italic tracking-tighter text-slate-700 opacity-20 group-hover:opacity-40 transition-opacity">
-                 {shortcut}
+                 {practiceShortcut}
               </div>
             </motion.div>
           );

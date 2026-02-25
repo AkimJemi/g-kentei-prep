@@ -104,11 +104,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       
       const key = e.key.toLowerCase();
-      if (key === 'e' || e.key === 'Enter') {
+      if (e.key === 'Enter') {      // e キーを削除、Enter のみ
         onStartQuiz();
-      } else if (key === 'q') {
+      } else if (key === 'z') {    // q → z (分析)
         onViewStats();
-      } else if (key === 'w' && stats.weakQuestionIds.length > 0) {
+      } else if (key === 'x' && stats.weakQuestionIds.length > 0) { // w → x (弱点)
         handleWeakPointReview();
       }
     };
@@ -290,11 +290,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartQuiz, onViewStats, 
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded-xl border border-slate-700/30">
                       <span className="text-sm text-slate-300 font-medium">成績・分析を見る</span>
-                      <kbd className="bg-slate-900 border border-slate-700 px-2 py-1 rounded text-xs text-slate-400 font-mono">Q</kbd>
+                      <kbd className="bg-slate-900 border border-slate-700 px-2 py-1 rounded text-xs text-slate-400 font-mono">Z</kbd>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded-xl border border-slate-700/30">
                       <span className="text-sm text-slate-300 font-medium">弱点復習モード</span>
-                      <kbd className="bg-slate-900 border border-slate-700 px-2 py-1 rounded text-xs text-slate-400 font-mono">W</kbd>
+                      <kbd className="bg-slate-900 border border-slate-700 px-2 py-1 rounded text-xs text-slate-400 font-mono">X</kbd>
                   </div>
               </div>
 

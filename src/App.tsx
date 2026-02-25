@@ -181,10 +181,10 @@ export default function App() {
         case 's': 
           handleNavigate('study'); 
           break;
-        case 'p': 
+        case 'n': 
           handleNavigate('submit'); 
           break;
-        case 't': 
+        case 'j': 
           handleNavigate('contact'); 
           break;
         case 'l': 
