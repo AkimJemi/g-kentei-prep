@@ -2,8 +2,8 @@
 * 記録形式
 [×:未対応, △:対応中, ●:完了, -:保留・検討中] タイトル
 - 詳細・仕様
-⇒実施：YYYY-MM-DD
-⇒完了：YYYY-MM-DD
+⇒実施：YYYY-MM-DD hh:mm
+⇒完了：YYYY-MM-DD hh:mm
 ※[備考]
 -----------
 
@@ -47,5 +47,13 @@
 ⇒完了：2026-02-26
 
 -----------
+[●] docs/資料フォルダのPDFを読み込み、各分野単位でG検定資格勉強用ノートを作成する。
+- C:\antigravity_workspace\g-kentei-prep\docs\資料
+⇒実施：2026-02-26
+⇒完了：2026-02-26
+※ docs/study_notes/ に11分野のMarkdownノートとINDEX.mdを生成
+
+-----------
 [-] 
+
 
