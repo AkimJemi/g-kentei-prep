@@ -38,6 +38,7 @@ export default function App() {
 
   const [view, setView] = useState<'dashboard' | 'study' | 'history' | 'quiz' | 'stats' | 'admin' | 'contact' | 'submit' | 'notifications' | 'flashcards' | 'questionList'>('dashboard');
   const [questionListCategory, setQuestionListCategory] = useState<{ id: string; title: string } | null>(null);
+  const [quizReturnView, setQuizReturnView] = useState<'study' | 'questionList'>('study');
   const scrollContainerRef = useRef<HTMLElement>(null);
   const [isBooting, setIsBooting] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | null }>({ message: '', type: null });
@@ -384,6 +385,7 @@ export default function App() {
                   try {
                     const result = await startQuiz(cat);
                     if (result.success) {
+                        setQuizReturnView('study'); // 通常の演習は戻り先をstudyに
                         setView('quiz');
                     } else {
                         const errorMsg = result.error || 'セクタの初期化に失敗しました';
@@ -406,6 +408,7 @@ export default function App() {
                   onStartFromQuestion={async (_catId, globalIdx) => {
                     const result = await startFromIndex(globalIdx);
                     if (result.success) {
+                      setQuizReturnView('questionList'); // 戻り先を問題一覧に設定
                       setView('quiz');
                     } else {
                       showToast(result.error || 'エラーが発生しました', 'error');
@@ -416,7 +419,14 @@ export default function App() {
               {view === 'history' && <HistoryView />}
               {view === 'stats' && <Statistics />}
               {view === 'admin' && <AdminDashboard />}
-              {view === 'quiz' && <Quiz onBack={() => handleNavigate('study')} />}
+              {view === 'quiz' && <Quiz onBack={() => {
+                if (quizReturnView === 'questionList') {
+                  setQuizReturnView('study'); // リセット
+                  handleNavigate('questionList');
+                } else {
+                  handleNavigate('study');
+                }
+              }} />}
               {view === 'notifications' && <NotificationView />}
               {view === 'flashcards' && <FlashcardView onBack={() => handleNavigate('study')} />}
               {view === 'contact' && <ContactView />}
