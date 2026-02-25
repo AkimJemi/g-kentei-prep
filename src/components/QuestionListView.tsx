@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Play, Search } from 'lucide-react';
 import { useQuestions } from '../hooks/useQuestions';
@@ -21,18 +21,8 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
   const currentUser = useAuthStore((state) => state.currentUser);
   const { data: allQuestions = [] } = useQuestions(currentUser?.userId);
   const [search, setSearch] = useState('');
-
-  // B / Escape で戻る
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key.toLowerCase() === 'b' || e.key === 'Escape') {
-        onBack();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onBack]);
+  const [focusedIdx, setFocusedIdx] = useState(0);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   // カテゴリに該当する問題のみ（元のインデックスを保持）
   const categoryQuestions = allQuestions
@@ -42,6 +32,63 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
   const filtered = categoryQuestions.filter((q) =>
     q.question.toLowerCase().includes(search.toLowerCase())
   );
+
+  // キーボードショートカット
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Tab → 検索バーにフォーカス
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
+
+      // 入力中は q/w/e を通常入力として扱う
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        // Escape → 検索を解除してフォーカスを外す
+        if (e.key === 'Escape') {
+          setSearch('');
+          (e.target as HTMLElement).blur();
+        }
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      // B / Escape → 戻る
+      if (key === 'b' || e.key === 'Escape') {
+        onBack();
+        return;
+      }
+
+      // q → 次の問題にフォーカス
+      if (key === 'q') {
+        setFocusedIdx(prev => Math.min(prev + 1, filtered.length - 1));
+        return;
+      }
+
+      // w → 前の問題にフォーカス
+      if (key === 'w') {
+        setFocusedIdx(prev => Math.max(prev - 1, 0));
+        return;
+      }
+
+      // e → フォーカス中の問題を選択（ここから開始）
+      if (key === 'e') {
+        const q = filtered[focusedIdx];
+        if (q) onStartFromQuestion(categoryId, q.globalIdx);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onBack, onStartFromQuestion, filtered, focusedIdx, categoryId]);
+
+  // 検索が変わったらフォーカスをリセット
+  useEffect(() => {
+    setFocusedIdx(0);
+  }, [search]);
 
   return (
     <motion.div
@@ -74,12 +121,23 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
         <input
+          ref={searchRef}
           type="text"
-          placeholder="問題を検索..."
+          placeholder="問題を検索... (Tab でフォーカス)"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full bg-slate-900/80 border border-slate-800 focus:border-accent/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 outline-none transition-colors"
         />
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-700 hidden xl:block">
+          [Tab]
+        </span>
+      </div>
+
+      {/* Shortcut hint */}
+      <div className="hidden xl:flex items-center gap-4 text-[9px] font-black text-slate-700 uppercase tracking-widest">
+        <span><kbd className="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded font-mono">Q</kbd> 次</span>
+        <span><kbd className="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded font-mono">W</kbd> 前</span>
+        <span><kbd className="bg-slate-900 border border-slate-800 px-1.5 py-0.5 rounded font-mono">E</kbd> ここから開始</span>
       </div>
 
       {/* Question List */}
@@ -91,11 +149,20 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: idx * 0.015 }}
-              className="group flex items-start gap-4 bg-slate-900/50 hover:bg-slate-800/60 border border-slate-800/60 hover:border-accent/30 rounded-2xl p-4 transition-all"
+              className={`group flex items-start gap-4 border rounded-2xl p-4 transition-all cursor-pointer ${
+                idx === focusedIdx
+                  ? 'bg-accent/10 border-accent/40 shadow-lg shadow-accent/10'
+                  : 'bg-slate-900/50 hover:bg-slate-800/60 border-slate-800/60 hover:border-accent/30'
+              }`}
+              onClick={() => setFocusedIdx(idx)}
             >
               {/* Number */}
-              <div className="shrink-0 w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
-                <span className="text-[10px] font-black font-mono text-slate-400">
+              <div className={`shrink-0 w-8 h-8 rounded-xl border flex items-center justify-center transition-colors ${
+                idx === focusedIdx ? 'bg-accent/20 border-accent/50' : 'bg-slate-800 border-slate-700'
+              }`}>
+                <span className={`text-[10px] font-black font-mono transition-colors ${
+                  idx === focusedIdx ? 'text-accent' : 'text-slate-400'
+                }`}>
                   {categoryQuestions.indexOf(q) + 1}
                 </span>
               </div>
@@ -109,12 +176,17 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
                     #{q.id}
                   </span>
+                  {idx === focusedIdx && (
+                    <span className="text-[9px] font-black text-accent/70 uppercase tracking-widest">
+                      ← E キーで開始
+                    </span>
+                  )}
                 </div>
               </div>
 
               {/* Start from this question button */}
               <button
-                onClick={() => onStartFromQuestion(categoryId, q.globalIdx)}
+                onClick={(e) => { e.stopPropagation(); onStartFromQuestion(categoryId, q.globalIdx); }}
                 className="shrink-0 flex items-center gap-2 px-3 py-2 bg-accent/10 hover:bg-accent/20 border border-accent/20 hover:border-accent/50 text-accent rounded-xl transition-all active:scale-95 text-xs font-black uppercase tracking-widest"
               >
                 <Play className="w-3 h-3 fill-current" />
