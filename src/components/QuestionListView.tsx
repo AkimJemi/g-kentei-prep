@@ -44,10 +44,14 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
 
   // キーボードショートカット
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Tab → 検索バーにフォーカス
+    // Tab → 検索バーにフォーカス / Shift+Tab → フォーカス解除
     if (e.key === 'Tab') {
       e.preventDefault();
-      searchRef.current?.focus();
+      if (e.shiftKey) {
+        searchRef.current?.blur();
+      } else {
+        searchRef.current?.focus();
+      }
       return;
     }
 
@@ -123,7 +127,7 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
           className="w-full bg-slate-900/80 border border-slate-800 focus:border-accent/50 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 outline-none transition-colors"
         />
         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-700 hidden xl:block">
-          [Tab]
+          [Tab] ON / [Shift+Tab] OFF
         </span>
       </div>
 
