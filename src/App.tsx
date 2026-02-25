@@ -164,9 +164,9 @@ export default function App() {
 
       const key = e.key.toLowerCase();
       
-      // B/ESC: Always goes to dashboard (unless in quiz, handled by Quiz component)
+      // B/ESC: Always goes to dashboard (unless in quiz or questionList, handled by their own components)
       if (key === 'b' || key === 'escape') {
-        if (view !== 'quiz') {
+        if (view !== 'quiz' && view !== 'questionList') {
           handleNavigate('dashboard');
         }
         return;

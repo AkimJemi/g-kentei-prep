@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Play, Search } from 'lucide-react';
 import { useQuestions } from '../hooks/useQuestions';
@@ -21,6 +21,18 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
   const currentUser = useAuthStore((state) => state.currentUser);
   const { data: allQuestions = [] } = useQuestions(currentUser?.userId);
   const [search, setSearch] = useState('');
+
+  // B / Escape で戻る
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key.toLowerCase() === 'b' || e.key === 'Escape') {
+        onBack();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onBack]);
 
   // カテゴリに該当する問題のみ（元のインデックスを保持）
   const categoryQuestions = allQuestions
@@ -47,6 +59,7 @@ export const QuestionListView: React.FC<QuestionListViewProps> = ({
         >
           <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
           <span className="text-[10px] font-black uppercase tracking-widest">戻る</span>
+          <span className="hidden xl:inline text-[8px] font-black text-slate-800 group-hover:text-slate-500 transition-colors">[B / Esc]</span>
         </button>
       </div>
 
