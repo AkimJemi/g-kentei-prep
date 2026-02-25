@@ -5,7 +5,7 @@ import { useLanguageStore } from '../store/useLanguageStore';
 import { 
     Brain, Cpu, Database, Zap, Layers, Globe, 
     Shield, Terminal, BookOpen, Award, 
-    ChevronLeft, HelpCircle 
+    ChevronLeft, HelpCircle, List
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
@@ -16,6 +16,7 @@ const ICON_MAP: Record<string, any> = {
 
 interface StudyModeProps {
   onStartPractice: (category: string) => void;
+  onShowQuestionList: (categoryId: string, categoryTitle: string) => void;
 }
 
 import { useAuthStore } from '../store/useAuthStore';
@@ -28,7 +29,7 @@ import { useUserProgress } from '../hooks/useUserProgress';
 
 // ... (existing imports)
 
-export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
+export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice, onShowQuestionList }) => {
   const { t } = useLanguageStore();
   const currentUser = useAuthStore((state) => state.currentUser);
   /* Refactored to use React Query hooks */
@@ -137,11 +138,10 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
           const p = progress[cat.id] || { total: 0, solved: 0, failed: 0, remaining: 0 };
  
           return (
-            <motion.button
+            <motion.div
               key={cat.id}
               variants={itemVariants}
-              onClick={onStartPractice.bind(null, cat.id)}
-              className="group relative p-4 md:p-8 bg-secondary/10 hover:bg-secondary/20 border border-white/[0.04] rounded-2xl md:rounded-3xl text-left transition-all hover:border-accent/30 shadow-xl overflow-hidden active:scale-95 flex flex-col h-full"
+              className="group relative p-4 md:p-8 bg-secondary/10 hover:bg-secondary/20 border border-white/[0.04] rounded-2xl md:rounded-3xl text-left transition-all hover:border-accent/30 shadow-xl overflow-hidden flex flex-col h-full"
             >
               <div className="absolute top-4 right-6 text-[10px] font-black text-slate-600/60 group-hover:text-slate-400 transition-colors hidden xl:block">
                 [{shortcut}]
@@ -153,7 +153,7 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
                   <CategoryIcon className={clsx("w-5 h-5 md:w-7 md:h-7", cat.color)} />
                 </div>
                 <div>
-                  <h3 className="text-sm md:text-xl font-black italic uppercase tracking-tighter text-white mb-1 md:mb-2 group-hover:text-accent transition-colors line-clamp-2 leading-tight">
+                  <h3 className="text-sm md:text-xl font-black italic tracking-tighter text-white mb-1 md:mb-2 group-hover:text-accent transition-colors line-clamp-2 leading-tight">
                     {cat.title}
                   </h3>
                   <p className="hidden md:block text-slate-500 text-xs font-medium leading-relaxed mb-6 line-clamp-2">
@@ -173,11 +173,29 @@ export const StudyMode: React.FC<StudyModeProps> = ({ onStartPractice }) => {
                       <div className="text-[10px] font-mono font-bold text-red-400">{p.failed}</div>
                   </div>
               </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-2 mt-3 relative z-10">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onStartPractice(cat.id); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-accent/10 hover:bg-accent/20 border border-accent/20 hover:border-accent/50 text-accent rounded-xl transition-all active:scale-95 text-[10px] font-black uppercase tracking-widest"
+                >
+                  <Zap className="w-3 h-3" />
+                  <span>演習</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onShowQuestionList(cat.id, cat.title); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600 text-slate-300 hover:text-white rounded-xl transition-all active:scale-95 text-[10px] font-black uppercase tracking-widest"
+                >
+                  <List className="w-3 h-3" />
+                  <span>一覧</span>
+                </button>
+              </div>
  
               <div className="absolute bottom-4 right-4 text-xs font-black italic tracking-tighter text-slate-700 opacity-20 group-hover:opacity-40 transition-opacity">
                  {shortcut}
               </div>
-            </motion.button>
+            </motion.div>
           );
         })}
       </div>

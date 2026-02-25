@@ -28,12 +28,13 @@ const fetchAllQuestions = async (userId?: string): Promise<{ questions: Question
 interface ExtendedQuizState extends QuizState {
     isActive: boolean; // Track if a quiz is currently active
     startQuiz: (category: string) => Promise<{ success: boolean; error?: string }>;
+    startFromIndex: (questionGlobalIndex: number) => Promise<{ success: boolean; error?: string }>;
     startWeakPointQuiz: (questionIds: number[]) => Promise<void>;
     saveProgress: (finalScore?: number) => Promise<void>;
     endQuiz: () => void;
     discardSession: () => void;
     getActiveSessions: () => Promise<any[]>;
-    resetQuiz: () => void; // Added based on lint feedback
+    resetQuiz: () => void;
 }
 
 export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
@@ -97,6 +98,37 @@ export const useQuizStore = create<ExtendedQuizState>((set, get) => ({
         } catch (error) {
             console.error("[Neural Store] Failed to start quiz:", error);
             return { success: false, error: 'CONNECTION_ERROR: Failed to initialize Neural Link.' };
+        }
+    },
+
+    startFromIndex: async (questionGlobalIndex: number) => {
+        try {
+            const authState = useAuthStore.getState();
+            const userId = authState.currentUser?.userId || (authState.currentUser as any)?.id;
+            if (!userId) return { success: false, error: 'AUTH_ERROR' };
+
+            const { questions: allQuestions, error } = await fetchAllQuestions(userId);
+            if (error) return { success: false, error };
+            if (questionGlobalIndex < 0 || questionGlobalIndex >= allQuestions.length) {
+                return { success: false, error: 'INDEX_OUT_OF_RANGE' };
+            }
+
+            // Start from the specific question through the end of all questions in that category
+            const targetQ = allQuestions[questionGlobalIndex];
+            const categoryQuestions = allQuestions.filter(q => q.category === targetQ.category);
+            const startPos = categoryQuestions.findIndex(q => q.id === targetQ.id);
+
+            set({
+                questions: categoryQuestions,
+                currentQuestionIndex: startPos >= 0 ? startPos : 0,
+                score: 0,
+                showResults: false,
+                answers: [],
+                isActive: true,
+            });
+            return { success: true };
+        } catch (e) {
+            return { success: false, error: 'CONNECTION_ERROR' };
         }
     },
 

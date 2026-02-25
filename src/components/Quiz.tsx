@@ -291,7 +291,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                         <div className="h-[1px] flex-grow bg-slate-800/50" />
                     </div>
                     <div className="flex items-start justify-between gap-4">
-                        <h2 className="text-xl md:text-3xl font-black italic tracking-tighter text-white leading-tight uppercase flex-grow">
+                        <h2 className="text-xl md:text-3xl font-black italic tracking-tighter text-white leading-tight flex-grow">
                             {localizedContent.question}
                         </h2>
                         <div className="flex items-center gap-2 self-start shrink-0">

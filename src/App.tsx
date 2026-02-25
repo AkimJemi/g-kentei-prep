@@ -18,6 +18,7 @@ import { SubmitQuestionView } from './components/SubmitQuestionView';
 import { Toast } from './components/Toast';
 import { NotificationView } from './components/NotificationView';
 import { FlashcardView } from './components/FlashcardView';
+import { QuestionListView } from './components/QuestionListView';
 import { Cpu, Database, Clock, BarChart3, Layout as LayoutIcon, Github, Shield, Radio, LogOut, Settings, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -35,7 +36,8 @@ export default function App() {
     }
   }, [isAuthenticated, currentUser]);
 
-  const [view, setView] = useState<'dashboard' | 'study' | 'history' | 'quiz' | 'stats' | 'admin' | 'contact' | 'submit' | 'notifications' | 'flashcards'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'study' | 'history' | 'quiz' | 'stats' | 'admin' | 'contact' | 'submit' | 'notifications' | 'flashcards' | 'questionList'>('dashboard');
+  const [questionListCategory, setQuestionListCategory] = useState<{ id: string; title: string } | null>(null);
   const scrollContainerRef = useRef<HTMLElement>(null);
   const [isBooting, setIsBooting] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | null }>({ message: '', type: null });
@@ -43,6 +45,7 @@ export default function App() {
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const { status } = useSubscriptionStore();
   const startQuiz = useQuizStore((state) => state.startQuiz);
+  const startFromIndex = useQuizStore((state) => state.startFromIndex);
   const isActive = useQuizStore((state) => state.isActive);
   const endQuiz = useQuizStore((state) => state.endQuiz);
 
@@ -376,23 +379,40 @@ export default function App() {
                   }}
                 />
               )}
-              {view === 'study' && <StudyMode onStartPractice={async (cat) => {
-                console.log('[App] Starting quiz for category:', cat);
-                try {
-                  const result = await startQuiz(cat);
-                  console.log('[App] Quiz start result:', result);
-                  if (result.success) {
-                      setView('quiz');
-                  } else {
-                      const errorMsg = result.error || 'セクタの初期化に失敗しました';
-                      console.error('[App] Quiz start failed:', errorMsg);
-                      showToast(errorMsg, 'error');
+              {view === 'study' && <StudyMode
+                onStartPractice={async (cat) => {
+                  try {
+                    const result = await startQuiz(cat);
+                    if (result.success) {
+                        setView('quiz');
+                    } else {
+                        const errorMsg = result.error || 'セクタの初期化に失敗しました';
+                        showToast(errorMsg, 'error');
+                    }
+                  } catch (error) {
+                    showToast('予期しないエラーが発生しました', 'error');
                   }
-                } catch (error) {
-                  console.error('[App] Exception during quiz start:', error);
-                  showToast('予期しないエラーが発生しました', 'error');
-                }
-              }} />}
+                }}
+                onShowQuestionList={(catId: string, catTitle: string) => {
+                  setQuestionListCategory({ id: catId, title: catTitle });
+                  setView('questionList');
+                }}
+              />}
+              {view === 'questionList' && questionListCategory && (
+                <QuestionListView
+                  categoryId={questionListCategory.id}
+                  categoryTitle={questionListCategory.title}
+                  onBack={() => setView('study')}
+                  onStartFromQuestion={async (_catId, globalIdx) => {
+                    const result = await startFromIndex(globalIdx);
+                    if (result.success) {
+                      setView('quiz');
+                    } else {
+                      showToast(result.error || 'エラーが発生しました', 'error');
+                    }
+                  }}
+                />
+              )}
               {view === 'history' && <HistoryView />}
               {view === 'stats' && <Statistics />}
               {view === 'admin' && <AdminDashboard />}
