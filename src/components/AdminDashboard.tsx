@@ -80,83 +80,102 @@ export const AdminDashboard: React.FC = () => {
 
   const fetchData = async () => {
     setIsLoading(true);
-    
-    // Fetch Admin Data with individual error handling
-    const fetchSafe = async (url: string, params: any = {}, defaultValue: any = []) => {
-        try {
-            const queryParams = new URLSearchParams({
-                ...params,
-                ...filters,
-                page: page.toString(),
-                search: searchQuery,
-                sortBy,
-                order: sortOrder,
-                limit: params.limit || (activeTab === 'questions' ? '50' : '10')
-            });
-            const res = await fetch(`${url}?${queryParams}`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const result = await res.json();
-            const normalized = normalizeKeys(result);
-            
-            // Handle both legacy (array) and new (paginated object) responses
-            if (normalized.data) {
-                setTotalPages(normalized.pagination.pages);
-                setTotalFilteredItems(normalized.pagination.total);
-                return normalized.data;
-            }
-            setTotalPages(1);
-            setTotalFilteredItems(normalized.length || 0);
-            return normalized;
-      } catch {
-        console.error("Failed to fetch data");
-        return defaultValue;
-      }
-    };
-
-    const statsRes = await fetch('/api/admin/stats');
-    if (statsRes.ok) setAdminStats(await statsRes.json());
-
-    if (activeTab === 'users') {
-        const u = await fetchSafe('/api/users');
-        setUsers(u);
-    } else if (activeTab === 'messages') {
-        const msgs = await fetchSafe('/api/admin/messages');
-        setMessages(msgs);
-    } else if (activeTab === 'submissions') {
-        const subs = await fetchSafe('/api/admin/submissions');
-        setSubmissions(subs);
-    } else if (activeTab === 'questions') {
-        const ques = await fetchSafe('/api/questions');
-        setQuestions(ques);
-    } else if (activeTab === 'notifications') {
-        const notes = await fetchSafe('/api/notifications', { admin: 'true' });
-        setAllNotifications(notes);
-    } else if (activeTab === 'tasks') {
-        try {
-            const res = await fetch('/api/admin/todos');
-            const t = await res.json();
-            if (Array.isArray(t)) {
-                setTodos(t);
-                setTotalPages(1);
-                setTotalFilteredItems(t.length);
-            }
-        } catch (e) {
-            console.error(e);
+    try {
+      // Fetch Admin Data with individual error handling
+      const fetchSafe = async (url: string, params: any = {}, defaultValue: any = []) => {
+          try {
+              const queryParams = new URLSearchParams({
+                  ...params,
+                  ...filters,
+                  page: page.toString(),
+                  search: searchQuery,
+                  sortBy,
+                  order: sortOrder,
+                  limit: params.limit || (activeTab === 'questions' ? '50' : '10')
+              });
+              const res = await fetch(`${url}?${queryParams}`);
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              const result = await res.json();
+              const normalized = normalizeKeys(result);
+              
+              // Handle both legacy (array) and new (paginated object) responses
+              if (normalized.data) {
+                  setTotalPages(normalized.pagination.pages);
+                  setTotalFilteredItems(normalized.pagination.total);
+                  return normalized.data;
+              }
+              setTotalPages(1);
+              setTotalFilteredItems(normalized.length || 0);
+              return normalized;
+        } catch (err) {
+          console.error(`Failed to fetch ${url}:`, err);
+          return defaultValue;
         }
-    } else if (activeTab === 'categories') {
-        const cats = await fetchSafe('/api/categories');
-        setDbCategories(cats);
+      };
+
+      const statsRes = await fetch('/api/admin/stats');
+      if (statsRes.ok) setAdminStats(await statsRes.json());
+
+      if (activeTab === 'users') {
+          const u = await fetchSafe('/api/users');
+          setUsers(u);
+      } else if (activeTab === 'messages') {
+          const msgs = await fetchSafe('/api/admin/messages');
+          setMessages(msgs);
+      } else if (activeTab === 'submissions') {
+          const subs = await fetchSafe('/api/admin/submissions');
+          setSubmissions(subs);
+      } else if (activeTab === 'questions') {
+          const ques = await fetchSafe('/api/questions');
+          setQuestions(ques);
+      } else if (activeTab === 'notifications') {
+          const notes = await fetchSafe('/api/notifications', { admin: 'true' });
+          setAllNotifications(notes);
+      } else if (activeTab === 'tasks') {
+          try {
+              const res = await fetch('/api/admin/todos');
+              const t = await res.json();
+              if (Array.isArray(t)) {
+                  setTodos(t);
+                  setTotalPages(1);
+                  setTotalFilteredItems(t.length);
+              }
+          } catch (e) {
+              console.error(e);
+          }
+      } else if (activeTab === 'categories') {
+          const cats = await fetchSafe('/api/categories');
+          setDbCategories(cats);
+      }
+      
+      try {
+          const a = await db.attempts.toArray();
+          setAllAttempts(a);
+      } catch (e) {
+          console.error('[Admin] Failed to fetch attempts:', e);
+      }
+    } finally {
+      setIsLoading(false);
     }
-    
-    const a = await db.attempts.toArray();
-    setAllAttempts(a);
-    
-    setIsLoading(false);
   };
 
   useEffect(() => {
     fetchData();
   }, [activeTab, page, sortBy, sortOrder, searchQuery, JSON.stringify(filters)]);
+
+  // Keyboard shortcuts 1-7 for admin tabs
+  useEffect(() => {
+    const tabIds = ['users', 'messages', 'submissions', 'questions', 'categories', 'notifications', 'tasks'];
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= 7 && tabIds[num - 1]) {
+        setActiveTab(tabIds[num - 1] as any);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Reset state on tab change
   useEffect(() => {
@@ -446,13 +465,13 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-800 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
             <div className="flex gap-1 min-w-max">
               {[
-                  { id: 'users', label: 'ユーザー管理', icon: Users },
-                  { id: 'messages', label: '受信トレイ', icon: Activity },
-                  { id: 'submissions', label: '承認待ち', icon: Database },
-                  { id: 'questions', label: '問題データ', icon: BarChart3 },
-                  { id: 'categories', label: 'カテゴリ', icon: Plus },
-                  { id: 'notifications', label: '通知管理', icon: ShieldAlert },
-                  { id: 'tasks', label: 'タスク管理', icon: Clock }
+                  { id: 'users',         label: 'ユーザー管理', icon: Users,       shortcut: '1' },
+                  { id: 'messages',      label: '受信トレイ',   icon: Activity,    shortcut: '2' },
+                  { id: 'submissions',   label: '承認待ち',     icon: Database,    shortcut: '3' },
+                  { id: 'questions',     label: '問題データ',   icon: BarChart3,   shortcut: '4' },
+                  { id: 'categories',    label: 'カテゴリ',     icon: Plus,        shortcut: '5' },
+                  { id: 'notifications', label: '通知管理',     icon: ShieldAlert, shortcut: '6' },
+                  { id: 'tasks',         label: 'タスク管理',   icon: Clock,       shortcut: '7' }
               ].map((tab) => (
                   <button
                       key={tab.id}
@@ -464,6 +483,7 @@ export const AdminDashboard: React.FC = () => {
                   >
                       <tab.icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
                       <span className="hidden sm:inline">{tab.label}</span>
+                      <span className="hidden xl:inline text-[8px] text-slate-700 group-hover:text-slate-500 font-mono ml-0.5">[{tab.shortcut}]</span>
                       {tab.id === 'messages' && adminStats.unreadMessages > 0 && (
                           <span className="bg-blue-500 text-white text-[9px] px-1.5 rounded-full">{adminStats.unreadMessages}</span>
                       )}
@@ -471,8 +491,7 @@ export const AdminDashboard: React.FC = () => {
                           <span className="bg-emerald-500 text-white text-[9px] px-1.5 rounded-full">{adminStats.pendingSubmissions}</span>
                       )}
                   </button>
-              ))}
-            </div>
+              ))}            </div>
           </div>
         </div>
       </div>
