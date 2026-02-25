@@ -160,7 +160,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
         }
         case 'ArrowRight':
         case 'Enter':
-          if (hasAnswered) nextQuestion();
+          nextQuestion();
           break;
         case 'ArrowLeft':
           prevQuestion();
@@ -243,7 +243,7 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                     </div>
                 </div>
                 <button 
-                    disabled={!hasAnswered || currentQuestionIndex === questions.length - 1}
+                    disabled={currentQuestionIndex === questions.length - 1}
                     onClick={nextQuestion}
                     className="p-1 rounded-lg text-slate-500 hover:text-white disabled:opacity-20 transition-colors"
                 >
@@ -442,12 +442,14 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                     })}
                 </div>
 
+                {/* Navigation Buttons - always visible */}
+                <div className="mt-8">
                 <AnimatePresence>
                     {hasAnswered && (
                         <motion.div 
-                            initial={{ opacity: 0, height: 0, y: 20 }}
+                            initial={{ opacity: 0, height: 0, y: 10 }}
                             animate={{ opacity: 1, height: "auto", y: 0 }}
-                            className="mt-12 space-y-8"
+                            className="mb-6"
                         >
                             <div className={clsx("p-6 rounded-2xl flex items-start gap-6 relative overflow-hidden", isCorrect ? "bg-green-500/5 border border-green-500/10" : "bg-red-500/5 border border-red-500/10")}>
                                 <div className={clsx("p-3 rounded-xl shrink-0", isCorrect ? "bg-green-500/10" : "bg-red-500/10")}>
@@ -466,33 +468,40 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                                     </p>
                                 </div>
                             </div>
-                            
-                            <div className="flex gap-4">
-                                <motion.button
-                                    whileHover={{ x: -2 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={prevQuestion}
-                                    disabled={currentQuestionIndex === 0}
-                                    className="flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                                >
-                                    <ChevronLeft className="w-4 h-4" />
-                                    <span>{t('prev_phase')}</span>
-                                    <span className="hidden xl:inline text-[8px] font-black text-slate-600 ml-1">[←]</span>
-                                </motion.button>
-                                <motion.button
-                                    whileHover={{ x: 2 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={nextQuestion}
-                                    className="flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl bg-accent text-primary font-black uppercase tracking-widest text-xs hover:bg-sky-400 transition-colors"
-                                >
-                                    <span>{currentQuestionIndex === questions.length - 1 ? t('verified') : t('next_phase')}</span>
-                                    <ChevronRight className="w-4 h-4" />
-                                    <span className="hidden xl:inline text-[8px] font-black text-primary/40 ml-1">[Enter/→]</span>
-                                </motion.button>
-                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                {/* Always-visible prev/next navigation */}
+                <div className="flex gap-4 mt-4">
+                    <motion.button
+                        whileHover={{ x: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={prevQuestion}
+                        disabled={currentQuestionIndex === 0}
+                        className="flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 font-black uppercase tracking-widest text-xs hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>{t('prev_phase')}</span>
+                        <span className="hidden xl:inline text-[8px] font-black text-slate-600 ml-1">[←]</span>
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ x: 2 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={nextQuestion}
+                        className={clsx(
+                            "flex-1 flex items-center justify-center gap-2 p-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-colors",
+                            hasAnswered
+                                ? "bg-accent text-primary hover:bg-sky-400"
+                                : "bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white"
+                        )}
+                    >
+                        <span>{currentQuestionIndex === questions.length - 1 ? (hasAnswered ? t('verified') : '終了') : (hasAnswered ? t('next_phase') : 'スキップ')}</span>
+                        <ChevronRight className="w-4 h-4" />
+                        <span className="hidden xl:inline text-[8px] font-black opacity-40 ml-1">[Enter/→]</span>
+                    </motion.button>
+                </div>
+                </div>
             </motion.div>
         </AnimatePresence>
     </div>
