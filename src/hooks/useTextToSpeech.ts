@@ -45,12 +45,23 @@ export const useTextToSpeech = () => {
         utterance.current.lang = options.lang || 'ja-JP'; // Default to Japanese for G-Kentei
 
         const voices = synth.current.getVoices();
-        // Platform specific voice selection preference
-        const preferredVoice = voices.find(v =>
-            (v.lang === options.lang) ||
-            (v.name.includes('Google') && v.lang.includes('ja')) ||
-            v.lang.includes('ja')
-        );
+
+        // Priority ranking for Japanese voices to get the most human-like experience
+        const rankedVoices = voices
+            .filter(v => v.lang.startsWith('ja'))
+            .sort((a, b) => {
+                const getScore = (v: SpeechSynthesisVoice) => {
+                    let score = 0;
+                    if (v.name.includes('Natural')) score += 100; // Edge Natural voices are amazing
+                    if (v.name.includes('Online')) score += 80;  // High quality online voices
+                    if (v.name.includes('Google')) score += 50;  // Google voices are decent
+                    if (v.name.includes('Microsoft')) score += 30; // Microsoft's standard are better than system defaults
+                    return score;
+                };
+                return getScore(b) - getScore(a);
+            });
+
+        const preferredVoice = rankedVoices[0];
 
         if (preferredVoice) {
             utterance.current.voice = preferredVoice;

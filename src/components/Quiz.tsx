@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useQuizStore } from '../store/useQuizStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useTextToSpeech } from '../hooks/useTextToSpeech';
-import { CheckCircle2, XCircle, RefreshCw, AlertCircle, Award, ChevronLeft, ChevronRight, LogOut, Terminal, Cpu, Volume2, VolumeX, Clock, ChevronDown } from 'lucide-react';
+import { CheckCircle2, XCircle, RefreshCw, AlertCircle, Award, ChevronLeft, ChevronRight, LogOut, Terminal, Cpu, Volume2, Clock, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
@@ -123,7 +123,8 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
       else pause();
     } else {
         if (!currentQuestion) return;
-        const textToRead = `${localizedContent.question}。 ${t('options')} ${localizedContent.options.join('、')}`;
+        // Adding more punctuation for more natural pauses in SpeechSynthesis
+        const textToRead = `${localizedContent.question}。 ... ${t('options')}： ${localizedContent.options.join('、 ')}`;
         speak(textToRead, { rate, lang: 'ja-JP' });
     }
   };
@@ -302,23 +303,46 @@ export const Quiz: React.FC<QuizProps> = ({ onBack }) => {
                                 {rate}x
                             </button>
 
-                            <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={handleReadAloud}
-                                className={clsx(
-                                    "p-2 md:p-3 rounded-2xl border transition-all",
-                                    isPlaying 
-                                        ? "bg-accent/20 border-accent text-accent animate-pulse" 
-                                        : "bg-slate-900/50 border-slate-800 text-slate-500 hover:text-accent hover:border-accent/50"
+                            <div className="relative">
+                                <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={handleReadAloud}
+                                    className={clsx(
+                                        "p-2 md:p-3 rounded-2xl border transition-all relative z-10",
+                                        isPlaying 
+                                            ? "bg-accent/20 border-accent text-accent" 
+                                            : "bg-slate-900/50 border-slate-800 text-slate-500 hover:text-accent hover:border-accent/50"
+                                    )}
+                                    title="Read Aloud"
+                                >
+                                    <div className="flex flex-col items-center gap-1">
+                                        {isPlaying ? (
+                                            <div className="flex items-center gap-0.5 h-5 mb-1">
+                                                {[0, 1, 2].map((i) => (
+                                                    <motion.div
+                                                        key={i}
+                                                        animate={{ height: [4, 16, 4] }}
+                                                        transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.1 }}
+                                                        className="w-1 bg-accent rounded-full"
+                                                    />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <Volume2 className="w-5 h-5 md:w-6 md:h-6" />
+                                        )}
+                                        <span className="hidden xl:block text-[8px] font-black text-accent/60 uppercase">{isPlaying ? 'Playing' : '[V]'}</span>
+                                    </div>
+                                </motion.button>
+                                {isPlaying && (
+                                    <motion.div 
+                                        initial={{ scale: 0.8, opacity: 0 }}
+                                        animate={{ scale: 1.5, opacity: 0 }}
+                                        transition={{ repeat: Infinity, duration: 1.5 }}
+                                        className="absolute inset-0 bg-accent/20 rounded-2xl -z-0"
+                                    />
                                 )}
-                                title="Read Aloud"
-                            >
-                                <div className="flex flex-col items-center gap-1">
-                                    {isPlaying ? <VolumeX className="w-5 h-5 md:w-6 md:h-6" /> : <Volume2 className="w-5 h-5 md:w-6 md:h-6" />}
-                                    <span className="hidden xl:block text-[8px] font-black text-accent/60">[V]</span>
-                                </div>
-                            </motion.button>
+                            </div>
                         </div>
                     </div>
                 </div>
