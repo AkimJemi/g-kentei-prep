@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="G検定（ジェネラリスト検定）の無料対策アプリ。1,400問以上の問題演習・AI解析・学習履歴管理が完全無料で使えます。" />
+    <title>G-Kentei Prep｜G検定 無料対策アプリ</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap"
+        rel="stylesheet" />
+
+    <!-- Google AdSense -->
+    <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --accent: #38bdf8;
+            --bg: #020817;
+            --surface: #0f172a;
+            --border: rgba(255, 255, 255, 0.06);
+            --text: #e2e8f0;
+            --muted: #64748b;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+        }
+
+        /* ---- HERO ---- */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 3rem 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% 40%, rgba(56, 189, 248, 0.08) 0%, transparent 70%);
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: var(--accent);
+            font-size: 0.7rem;
+            font-weight: 900;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 0.4rem 1rem;
+            border-radius: 999px;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+            margin-bottom: 1.25rem;
+        }
+
+        h1 span {
+            color: var(--accent);
+        }
+
+        .hero-desc {
+            font-size: 1.05rem;
+            color: var(--muted);
+            max-width: 36rem;
+            margin: 0 auto 2.5rem;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--accent);
+            color: #020817;
+            font-weight: 900;
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            padding: 0.9rem 2.5rem;
+            border-radius: 0.75rem;
+            text-decoration: none;
+            transition: opacity 0.2s, transform 0.2s;
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.25);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.85;
+            transform: translateY(-2px);
+        }
+
+        .stats {
+            display: flex;
+            gap: 2.5rem;
+            justify-content: center;
+            margin-top: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-num {
+            font-size: 2rem;
+            font-weight: 900;
+            color: white;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+
+        /* ---- SECTION ---- */
+        section {
+            padding: 5rem 1.5rem;
+            max-width: 860px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 900;
+            margin-bottom: 2rem;
+        }
+
+        h2 span {
+            color: var(--accent);
+        }
+
+        /* ---- FEATURES ---- */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.75rem;
+        }
+
+        .feature-icon {
+            font-size: 1.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        /* ---- SAMPLE QUESTIONS ---- */
+        .questions {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .question-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.75rem;
+        }
+
+        .q-category {
+            font-size: 0.65rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+        }
+
+        .q-text {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .q-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .q-option {
+            font-size: 0.85rem;
+            padding: 0.6rem 1rem;
+            border-radius: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            color: var(--muted);
+        }
+
+        .q-option.correct {
+            border-color: rgba(56, 189, 248, 0.4);
+            color: var(--accent);
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .q-answer {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: var(--muted);
+            border-top: 1px solid var(--border);
+            padding-top: 0.75rem;
+        }
+
+        /* ---- CTA ---- */
+        .cta-section {
+            text-align: center;
+            padding: 5rem 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .cta-section h2 {
+            font-size: 2rem;
+        }
+
+        .cta-section p {
+            color: var(--muted);
+            margin: 1rem auto 2rem;
+            max-width: 28rem;
+        }
+
+        /* ---- FOOTER ---- */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+            border-top: 1px solid var(--border);
+        }
+
+        /* AdSense placeholder */
+        .ad-slot {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px dashed var(--border);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.75rem;
+            margin: 2rem 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HERO -->
+    <div class="hero">
+        <div class="badge">🤖 G検定 無料対策アプリ</div>
+        <h1>G検定を<span>確実に</span>合格する</h1>
+        <p class="hero-desc">
+            1,400問以上の演習問題・学習履歴管理・AIによる弱点分析まで、<strong>完全無料</strong>で提供しています。
+        </p>
+        <a href="/" class="btn-primary">
+            ▶ アプリを始める（無料）
+        </a>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-num">1,400+</div>
+                <div class="stat-label">演習問題数</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">11</div>
+                <div class="stat-label">学習カテゴリ</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">¥0</div>
+                <div class="stat-label">利用料金</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AD -->
+    <div style="max-width:860px;margin:0 auto;padding:0 1.5rem;">
+        <div class="ad-slot">広告スペース（AdSense）</div>
+    </div>
+
+    <!-- FEATURES -->
+    <section>
+        <h2>主な<span>機能</span></h2>
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">📚</div>
+                <h3>1,400問の演習問題</h3>
+                <p>AI概論から法律・倫理まで、G検定シラバス全範囲をカバー。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>学習履歴・統計</h3>
+                <p>カテゴリ別の正解率や苦手分野をグラフで可視化。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>AI解析</h3>
+                <p>間違えた問題をAIが分析し、弱点克服プランを提案。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📖</div>
+                <h3>自習モード</h3>
+                <p>テキスト形式の学習ノートで体系的にインプット。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SAMPLE QUESTIONS -->
+    <section>
+        <h2>サンプル<span>問題</span></h2>
+        <div class="questions">
+
+            <div class="question-card">
+                <div class="q-category">AI概論</div>
+                <div class="q-text">Q1. 機械学習の手法のうち、正解ラベルを使用しない学習方法はどれか？</div>
+                <div class="q-options">
+                    <div class="q-option">① 教師あり学習</div>
+                    <div class="q-option correct">② 教師なし学習 ✓</div>
+                    <div class="q-option">③ 強化学習</div>
+                    <div class="q-option">④ 転移学習</div>
+                </div>
+                <div class="q-answer">解説：教師なし学習はラベルなしデータからパターンを発見する手法。クラスタリングや次元削減などが代表例。</div>
+            </div>
+
+            <div class="question-card">
+                <div class="q-category">ディープラーニング概要</div>
+                <div class="q-text">Q2. ニューラルネットワークの「活性化関数」の役割として正しいものはどれか？</div>
+                <div class="q-options">
+                    <div class="q-option">① 学習率を調整する</div>
+                    <div class="q-option">② 損失を計算する</div>
+                    <div class="q-option correct">③ 非線形性を導入する ✓</div>
+                    <div class="q-option">④ データを正規化する</div>
+                </div>
+                <div class="q-answer">解説：活性化関数（ReLU・Sigmoidなど）により、ネットワークが非線形な関係を学習できるようになる。</div>
+            </div>
+
+            <div class="question-card">
+                <div class="q-category">AI倫理・ガバナンス</div>
+                <div class="q-text">Q3. 「説明可能なAI（XAI）」が求められる主な理由として最も適切なものはどれか？</div>
+                <div class="q-options">
+                    <div class="q-option">① 処理速度を向上させるため</div>
+                    <div class="q-option correct">② AIの判断の根拠を人間が理解・検証できるようにするため ✓</div>
+                    <div class="q-option">③ データ量を削減するため</div>
+                    <div class="q-option">④ モデルのサイズを小さくするため</div>
+                </div>
+                <div class="q-answer">解説：医療・金融などの重要な意思決定でAIを使う際、判断の透明性・説明責任が法的・倫理的に求められる。</div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- AD -->
+    <div style="max-width:860px;margin:0 auto;padding:0 1.5rem;">
+        <div class="ad-slot">広告スペース（AdSense）</div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+        <h2>今すぐ<span style="color:var(--accent)">無料</span>で始める</h2>
+        <p>登録30秒。1,400問以上の演習が今日から使えます。</p>
+        <a href="/" class="btn-primary">アプリを開く →</a>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>© 2026 G-Kentei Prep — Powered by Akim Dev. All rights reserved.</p>
+        <p style="margin-top:0.5rem;">本サービスはJDLA G検定の非公式対策ツールです。</p>
+    </footer>
+
+</body>
+
+</html>
