@@ -481,7 +481,7 @@ export const AdminDashboard: React.FC = () => {
 
             // Update local state
             setErrorLogs(prev => prev.map(err =>
-                err.errorId === errorId ? { ...err, status } : err
+                err.errorId === errorId ? { ...err, status: status as any } : err
             ));
             addNotification('success', 'ステータスを更新しました');
         } catch (err) {
