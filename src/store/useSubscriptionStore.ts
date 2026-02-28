@@ -64,14 +64,17 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                         window.location.href = data.url;
                     } else {
                         console.error("Checkout failed", data);
-                        if (data.error) alert(`Checkout Error: ${data.error}`);
+                        // fallback to demo on API fail
                     }
                 } catch (e: any) {
                     console.error("Upgrade error", e);
-                    // Fallback for demo
-                    alert("Network error. Falling back to demo mode.");
+                    // Fallback for demo silently
                     const newStatus = planId.includes('premium') ? 'premium' : 'basic';
-                    set({ status: newStatus, isPremium: true });
+                    set({
+                        status: newStatus,
+                        isPremium: true,
+                        features: newStatus === 'premium' ? ['unlimited', 'ai_analysis'] : ['unlimited']
+                    });
                 }
             },
 
