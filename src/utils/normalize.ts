@@ -20,7 +20,11 @@ export const normalizeKeys = (item: any): any => {
         createdat: 'createdAt',
         correctanswer: 'correctAnswer',
         repliedat: 'repliedAt',
-        optionexplanations: 'optionExplanations'
+        optionexplanations: 'optionExplanations',
+        errorid: 'errorId',
+        screenid: 'screenId',
+        errormessage: 'errorMessage',
+        errorstack: 'errorStack'
     };
 
     const newItem: any = {};
