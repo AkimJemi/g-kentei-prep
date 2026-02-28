@@ -160,8 +160,9 @@ export const AdminDashboard: React.FC = () => {
                     const res = await fetch('/api/errors');
                     if (res.ok) {
                         const errs = await res.json();
-                        setErrorLogs(errs);
-                        setTotalFilteredItems(errs.length);
+                        const normalized = normalizeKeys(errs);
+                        setErrorLogs(normalized);
+                        setTotalFilteredItems(normalized.length);
                         setTotalPages(1);
                     }
                 } catch (e) {
@@ -551,164 +552,166 @@ export const AdminDashboard: React.FC = () => {
             <div className="bg-secondary/10 border border-white/[0.04] rounded-3xl overflow-hidden shadow-2xl min-h-[400px]">
 
                 {/* Common Toolbar */}
-                <div className="px-4 md:px-8 py-3 md:py-4 border-b border-white/[0.04] bg-slate-900/20 backdrop-blur-md flex flex-col gap-4 sticky top-0 z-10">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3 flex-1 w-full md:max-w-xl">
-                            <div className="relative flex-1 group">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-accent transition-colors" />
-                                <input
-                                    type="text"
-                                    value={searchInputValue}
-                                    onChange={(e) => setSearchInputValue(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            setSearchQuery(searchInputValue);
-                                        }
-                                    }}
-                                    placeholder={`${activeTab === 'users' ? '名まえで検索' : activeTab === 'questions' ? '問題文で検索' : '検索...'}`}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 pl-11 pr-4 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-accent/50 focus:border-accent transition-all"
-                                />
-                            </div>
-                            <button
-                                onClick={() => setSearchQuery(searchInputValue)}
-                                className="whitespace-nowrap px-4 py-2 bg-accent hover:bg-sky-400 text-primary font-black uppercase tracking-widest text-[9px] rounded-lg transition-all shadow-lg shadow-accent/20"
-                            >
-                                検索実行
-                            </button>
-                            <button
-                                onClick={() => fetchData()}
-                                className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-all active:rotate-180 duration-500"
-                                title="更新"
-                            >
-                                <RefreshCw className={clsx("w-3.5 h-3.5", isLoading && "animate-spin")} />
-                            </button>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                            <div className="flex items-center gap-2 pr-2 mr-2 border-r border-white/10">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">ソート:</label>
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="bg-slate-900 border border-slate-800 rounded-lg py-1 px-2 text-[10px] text-white focus:outline-none focus:border-accent"
-                                >
-                                    <option value="id">ID</option>
-                                    {['questions', 'submissions'].includes(activeTab) && <option value="category">カテゴリ</option>}
-                                    {activeTab === 'users' && (
-                                        <>
-                                            <option value="nickname">ユーザー名</option>
-                                            <option value="joinedAt">登録日</option>
-                                        </>
-                                    )}
-                                    {activeTab === 'messages' && (
-                                        <>
-                                            <option value="createdAt">受信日</option>
-                                            <option value="status">状態</option>
-                                        </>
-                                    )}
-                                    {activeTab === 'notifications' && (
-                                        <>
-                                            <option value="title">タイトル</option>
-                                            <option value="type">種別</option>
-                                            <option value="createdAt">配信日</option>
-                                        </>
-                                    )}
-                                    {activeTab === 'submissions' && (
-                                        <>
-                                            <option value="question">問題文</option>
-                                            <option value="createdAt">申請日</option>
-                                        </>
-                                    )}
-                                    {activeTab === 'questions' && (
-                                        <>
-                                            <option value="id">ID</option>
-                                            <option value="category">カテゴリ</option>
-                                            <option value="question">問題文</option>
-                                        </>
-                                    )}
-                                </select>
+                {activeTab !== 'errors' && (
+                    <div className="px-4 md:px-8 py-3 md:py-4 border-b border-white/[0.04] bg-slate-900/20 backdrop-blur-md flex flex-col gap-4 sticky top-0 z-10">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3 flex-1 w-full md:max-w-xl">
+                                <div className="relative flex-1 group">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-accent transition-colors" />
+                                    <input
+                                        type="text"
+                                        value={searchInputValue}
+                                        onChange={(e) => setSearchInputValue(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                setSearchQuery(searchInputValue);
+                                            }
+                                        }}
+                                        placeholder={`${activeTab === 'users' ? '名まえで検索' : activeTab === 'questions' ? '問題文で検索' : '検索...'}`}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2 pl-11 pr-4 text-xs text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-accent/50 focus:border-accent transition-all"
+                                    />
+                                </div>
                                 <button
-                                    onClick={() => setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC')}
-                                    className="p-1.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 hover:text-white"
+                                    onClick={() => setSearchQuery(searchInputValue)}
+                                    className="whitespace-nowrap px-4 py-2 bg-accent hover:bg-sky-400 text-primary font-black uppercase tracking-widest text-[9px] rounded-lg transition-all shadow-lg shadow-accent/20"
                                 >
-                                    <ArrowUpDown className="w-4 h-4" />
+                                    検索実行
+                                </button>
+                                <button
+                                    onClick={() => fetchData()}
+                                    className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-all active:rotate-180 duration-500"
+                                    title="更新"
+                                >
+                                    <RefreshCw className={clsx("w-3.5 h-3.5", isLoading && "animate-spin")} />
                                 </button>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">フィルタ:</label>
-
-                                {/* Tab Specific Filters */}
-                                {activeTab === 'users' && (
+                                <div className="flex items-center gap-2 pr-2 mr-2 border-r border-white/10">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">ソート:</label>
                                     <select
-                                        value={filters.role || ''}
-                                        onChange={(e) => setFilters(prev => ({ ...prev, role: e.target.value }))}
-                                        className="bg-slate-950/50 border border-slate-800 rounded px-2 py-1 text-[10px] text-white"
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        className="bg-slate-900 border border-slate-800 rounded-lg py-1 px-2 text-[10px] text-white focus:outline-none focus:border-accent"
                                     >
-                                        <option value="">全ての権限</option>
-                                        <option value="user">一般ユーザー</option>
-                                        <option value="admin">管理者</option>
+                                        <option value="id">ID</option>
+                                        {['questions', 'submissions'].includes(activeTab) && <option value="category">カテゴリ</option>}
+                                        {activeTab === 'users' && (
+                                            <>
+                                                <option value="nickname">ユーザー名</option>
+                                                <option value="joinedAt">登録日</option>
+                                            </>
+                                        )}
+                                        {activeTab === 'messages' && (
+                                            <>
+                                                <option value="createdAt">受信日</option>
+                                                <option value="status">状態</option>
+                                            </>
+                                        )}
+                                        {activeTab === 'notifications' && (
+                                            <>
+                                                <option value="title">タイトル</option>
+                                                <option value="type">種別</option>
+                                                <option value="createdAt">配信日</option>
+                                            </>
+                                        )}
+                                        {activeTab === 'submissions' && (
+                                            <>
+                                                <option value="question">問題文</option>
+                                                <option value="createdAt">申請日</option>
+                                            </>
+                                        )}
+                                        {activeTab === 'questions' && (
+                                            <>
+                                                <option value="id">ID</option>
+                                                <option value="category">カテゴリ</option>
+                                                <option value="question">問題文</option>
+                                            </>
+                                        )}
                                     </select>
-                                )}
+                                    <button
+                                        onClick={() => setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC')}
+                                        className="p-1.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 hover:text-white"
+                                    >
+                                        <ArrowUpDown className="w-4 h-4" />
+                                    </button>
+                                </div>
 
-                                {activeTab === 'messages' && (
-                                    <>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">フィルタ:</label>
+
+                                    {/* Tab Specific Filters */}
+                                    {activeTab === 'users' && (
                                         <select
-                                            value={filters.status || ''}
-                                            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                                            value={filters.role || ''}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, role: e.target.value }))}
                                             className="bg-slate-950/50 border border-slate-800 rounded px-2 py-1 text-[10px] text-white"
                                         >
-                                            <option value="">全ての状態</option>
-                                            <option value="unread">未読</option>
-                                            <option value="replied">返信済み</option>
+                                            <option value="">全ての権限</option>
+                                            <option value="user">一般ユーザー</option>
+                                            <option value="admin">管理者</option>
                                         </select>
+                                    )}
+
+                                    {activeTab === 'messages' && (
+                                        <>
+                                            <select
+                                                value={filters.status || ''}
+                                                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                                                className="bg-slate-950/50 border border-slate-800 rounded px-2 py-1 text-[10px] text-white"
+                                            >
+                                                <option value="">全ての状態</option>
+                                                <option value="unread">未読</option>
+                                                <option value="replied">返信済み</option>
+                                            </select>
+                                            <select
+                                                value={filters.topic || ''}
+                                                onChange={(e) => setFilters(prev => ({ ...prev, topic: e.target.value }))}
+                                                className="bg-slate-950/50 border border-slate-800 rounded px-2 py-1 text-[10px] text-white max-w-[120px]"
+                                            >
+                                                <option value="">全トピック</option>
+                                                <option value="一般的なお問い合わせ">一般</option>
+                                                <option value="不具合・バグ報告">不具合</option>
+                                                <option value="機能の提案">機能</option>
+                                                <option value="問題・解説の訂正">訂正</option>
+                                                <option value="その他">その他</option>
+                                            </select>
+                                        </>
+                                    )}
+
+                                    {['questions', 'submissions'].includes(activeTab) && (
                                         <select
-                                            value={filters.topic || ''}
-                                            onChange={(e) => setFilters(prev => ({ ...prev, topic: e.target.value }))}
-                                            className="bg-slate-950/50 border border-slate-800 rounded px-2 py-1 text-[10px] text-white max-w-[120px]"
+                                            value={filters.category || ''}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                                            className="bg-slate-950/50 border border-slate-800 rounded px-2 py-1 text-[10px] text-white max-w-[150px]"
                                         >
-                                            <option value="">全トピック</option>
-                                            <option value="一般的なお問い合わせ">一般</option>
-                                            <option value="不具合・バグ報告">不具合</option>
-                                            <option value="機能の提案">機能</option>
-                                            <option value="問題・解説の訂正">訂正</option>
-                                            <option value="その他">その他</option>
+                                            {dbCategories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                                         </select>
-                                    </>
-                                )}
+                                    )}
 
-                                {['questions', 'submissions'].includes(activeTab) && (
-                                    <select
-                                        value={filters.category || ''}
-                                        onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
-                                        className="bg-slate-950/50 border border-slate-800 rounded px-2 py-1 text-[10px] text-white max-w-[150px]"
+                                    {activeTab === 'notifications' && (
+                                        <select
+                                            value={filters.type || ''}
+                                            onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+                                            className="bg-slate-950/50 border border-slate-800 rounded px-2 py-1 text-[10px] text-white"
+                                        >
+                                            <option value="">全種別</option>
+                                            <option value="info">お知らせ</option>
+                                            <option value="warning">重要/警告</option>
+                                        </select>
+                                    )}
+
+                                    <button
+                                        onClick={() => setFilters({})}
+                                        className="text-[8px] font-black text-slate-600 hover:text-red-500 uppercase tracking-tighter ml-1"
                                     >
-                                        {dbCategories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                                    </select>
-                                )}
-
-                                {activeTab === 'notifications' && (
-                                    <select
-                                        value={filters.type || ''}
-                                        onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-                                        className="bg-slate-950/50 border border-slate-800 rounded px-2 py-1 text-[10px] text-white"
-                                    >
-                                        <option value="">全種別</option>
-                                        <option value="info">お知らせ</option>
-                                        <option value="warning">重要/警告</option>
-                                    </select>
-                                )}
-
-                                <button
-                                    onClick={() => setFilters({})}
-                                    className="text-[8px] font-black text-slate-600 hover:text-red-500 uppercase tracking-tighter ml-1"
-                                >
-                                    × リセット
-                                </button>
+                                        × リセット
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* USERS TAB */}
                 {activeTab === 'users' && (
