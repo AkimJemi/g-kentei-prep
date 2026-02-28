@@ -415,8 +415,11 @@ const getPaginatedData = async (tableName, req, searchColumns = []) => {
   const countRes = await pool.query(`SELECT count(*) as total FROM ${tableName} ${whereClause}`, params);
   const total = parseInt(countRes.rows[0].total);
 
-  const validSortColumns = ['id', 'category', 'createdAt', 'joinedAt', 'date', 'name', 'username', 'topic', 'status', 'role', 'type', 'title', 'question'];
-  const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'id';
+  const validSortColumns = ['id', 'userId', 'category', 'createdAt', 'joinedAt', 'date', 'name', 'username', 'topic', 'status', 'role', 'type', 'title', 'question'];
+  let safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'id';
+  if (tableName === 'g_kentei_users' && safeSortBy === 'id') {
+    safeSortBy = 'userId';
+  }
   const safeOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
   const dataRes = await pool.query(`
@@ -567,6 +570,8 @@ app.get('/api/questions', async (req, res) => {
       if (!userId) cache.set('query', cacheKey, questions);
       return res.json(questions);
     }
+
+    const { data, pagination } = await getPaginatedData('g_kentei_questions', req, ['category', 'question', 'explanation']);
 
     const formatted = data.map(q => ({
       ...q,
