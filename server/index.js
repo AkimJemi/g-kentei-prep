@@ -415,10 +415,12 @@ const getPaginatedData = async (tableName, req, searchColumns = []) => {
   const countRes = await pool.query(`SELECT count(*) as total FROM ${tableName} ${whereClause}`, params);
   const total = parseInt(countRes.rows[0].total);
 
-  const validSortColumns = ['id', 'userId', 'category', 'createdAt', 'joinedAt', 'date', 'name', 'username', 'topic', 'status', 'role', 'type', 'title', 'question'];
+  const validSortColumns = ['id', 'userId', 'errorId', 'category', 'createdAt', 'joinedAt', 'date', 'name', 'username', 'topic', 'status', 'role', 'type', 'title', 'question', 'screenId', 'errorMessage'];
   let safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'id';
   if (tableName === 'g_kentei_users' && safeSortBy === 'id') {
     safeSortBy = 'userId';
+  } else if (tableName === 'g_kentei_error_logs' && safeSortBy === 'id') {
+    safeSortBy = 'errorId';
   }
   const safeOrder = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
@@ -1510,8 +1512,15 @@ app.post('/api/errors', async (req, res) => {
 
 app.get('/api/errors', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM g_kentei_error_logs ORDER BY createdAt DESC LIMIT 100');
-    res.json(result.rows);
+    const { page, limit, search } = req.query;
+    const usePagination = page !== undefined || limit !== undefined || search !== undefined;
+
+    if (!usePagination) {
+      const result = await pool.query('SELECT * FROM g_kentei_error_logs ORDER BY createdAt DESC LIMIT 100');
+      return res.json(result.rows);
+    }
+    const result = await getPaginatedData('g_kentei_error_logs', req, ['errorId', 'screenId', 'errorMessage', 'errorStack']);
+    res.json(result);
   } catch (err) {
     logger.error('[API Error] Failed to fetch error logs', { error: err.message });
     res.status(500).json({ error: err.message });
