@@ -235,7 +235,7 @@ export default function App() {
         case 'a':
           if (isAdmin && view !== 'quiz') handleNavigate('admin');
           break;
-        case 'f':
+        case 'k':
           handleNavigate('flashcards');
           break;
         // All other keys are handled by view-specific components

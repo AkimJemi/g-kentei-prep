@@ -125,13 +125,13 @@ export const StudySectorView: React.FC<StudyModeProps> = ({ onStartPractice, onS
         </div>
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <button
-            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f' }))}
+            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k' }))}
             className="flex items-center gap-3 bg-accent/10 hover:bg-accent/20 border border-accent/20 px-4 md:px-6 py-3 rounded-2xl transition-all group"
           >
             <Brain className="w-5 h-5 text-accent animate-pulse" />
             <div className="text-left flex-1 min-w-0">
               <div className="text-[10px] font-black text-accent uppercase tracking-widest leading-none mb-1">暗記カード</div>
-              <div className="text-[8px] font-medium text-slate-500 uppercase tracking-widest truncate">重要用語の総復習 <span className="hidden xl:inline">[F]</span></div>
+              <div className="text-[8px] font-medium text-slate-500 uppercase tracking-widest truncate">重要用語の総復習 <span className="hidden xl:inline">[K]</span></div>
             </div>
           </button>
           <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-800 px-6 py-3 rounded-2xl">

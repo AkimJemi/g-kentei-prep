@@ -417,8 +417,9 @@ const getPaginatedData = async (tableName, req, searchColumns = []) => {
 
   const validSortColumns = ['id', 'userId', 'errorId', 'category', 'createdAt', 'joinedAt', 'date', 'name', 'username', 'topic', 'status', 'role', 'type', 'title', 'question', 'screenId', 'errorMessage'];
   let safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'id';
-  if (tableName === 'g_kentei_users' && safeSortBy === 'id') {
-    safeSortBy = 'userId';
+  if (tableName === 'g_kentei_users') {
+    if (safeSortBy === 'id') safeSortBy = 'userId';
+    if (safeSortBy === 'joinedat' || safeSortBy === 'createdAt') safeSortBy = 'joinedAt';
   } else if (tableName === 'g_kentei_error_logs' && safeSortBy === 'id') {
     safeSortBy = 'errorId';
   }
@@ -573,9 +574,10 @@ app.get('/api/questions', async (req, res) => {
       return res.json(questions);
     }
 
-    const { data, pagination } = await getPaginatedData('g_kentei_questions', req, ['category', 'question', 'explanation']);
+    const result = await getPaginatedData('g_kentei_questions', req, ['category', 'question', 'explanation']);
+    const { data: questionsData, pagination } = result;
 
-    const formatted = data.map(q => ({
+    const formatted = questionsData.map(q => ({
       ...q,
       correctAnswer: q.correctanswer,
       options: typeof q.options === 'string' ? JSON.parse(q.options) : q.options,

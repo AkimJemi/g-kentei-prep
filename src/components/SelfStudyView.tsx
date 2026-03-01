@@ -92,7 +92,10 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
     };
 
     const saveNotes = async (contentToSave: string, documentId: string, showSuccessToast: boolean = true) => {
-        if (!currentUser?.userId) return;
+        if (!currentUser?.userId) {
+            console.warn("[Neural Link] Save aborted: Authenticated session required.");
+            return;
+        }
         try {
             setIsSaving(true);
             const res = await fetch('/api/notes', {
@@ -115,6 +118,33 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
             setTimeout(() => setIsSaving(false), 500); // Small delay for UX
         }
     };
+
+    // User switch sync effect:
+    // If user logs in/out or switches, we must reload or clear the notes for the current document
+    useEffect(() => {
+        const syncNotes = async () => {
+            if (!selectedGuide) return;
+
+            if (currentUser?.userId) {
+                try {
+                    const resNotes = await fetch(`/api/notes/${currentUser.userId}/${selectedGuide}`);
+                    if (resNotes.ok) {
+                        const notesData = await resNotes.json();
+                        setNotes(notesData.noteContent || '');
+                    } else {
+                        setNotes('');
+                    }
+                } catch (e) {
+                    console.error("Failed to sync notes on user change", e);
+                    setNotes('');
+                }
+            } else {
+                setNotes(''); // Clear notes when logged out
+            }
+        };
+
+        syncNotes();
+    }, [currentUser?.userId, selectedGuide]);
 
     const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newNotes = e.target.value;
