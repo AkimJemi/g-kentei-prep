@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { ChevronLeft, Save, Book, FileText, Loader2, PanelsTopLeft, ListTree } from 'lucide-react';
+import { ChevronLeft, Save, Book, FileText, Loader2, PanelsTopLeft, List } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import clsx from 'clsx';
-import { Toast } from './Toast'; // Assuming you have Toast component exported from Toast.tsx
+import { Toast } from './Toast';
+import { scrollRegistry } from '../utils/scrollRegistry';
 
 interface SelfStudyViewProps {
     onBack: () => void;
+    initialGuide?: string | null;
+    onGuideChange?: (guide: string | null) => void;
+    initialScrollTop?: number; // restore scroll after content loads
 }
 
-export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
+export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack, initialGuide, onGuideChange, initialScrollTop }) => {
     const { t } = useLanguageStore();
     const currentUser = useAuthStore((state) => state.currentUser);
 
@@ -28,11 +32,19 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
     // Toggle for Layouts
     const [showNotes, setShowNotes] = useState(true);
     const [showSectors, setShowSectors] = useState(true);
+    const [showToc, setShowToc] = useState(true);
+
+    // Table of Contents
+    interface TocItem { id: string; text: string; level: number; }
+    const [toc, setToc] = useState<TocItem[]>([]);
+    const [activeTocId, setActiveTocId] = useState<string | null>(null);
 
     const markdownContainerRef = useRef<HTMLDivElement>(null);
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | null }>({ message: '', type: null });
     const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Holds a scroll position to apply after the next content load completes
+    const pendingScrollRef = useRef<number | null>(initialScrollTop ?? null);
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ message, type });
@@ -47,8 +59,12 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
                 if (!res.ok) throw new Error('Failed to fetch guide list');
                 const data = await res.json();
                 setGuides(data);
-                if (data.length > 0) {
-                    handleSelectGuide(data[0]);
+                // Use initialGuide if provided (from save point restore), otherwise default to first
+                const guideToSelect = initialGuide && data.includes(initialGuide)
+                    ? initialGuide
+                    : data.length > 0 ? data[0] : null;
+                if (guideToSelect) {
+                    handleSelectGuide(guideToSelect);
                 }
             } catch (error) {
                 console.error("Error fetching guides:", error);
@@ -62,6 +78,7 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
 
     const handleSelectGuide = async (filename: string) => {
         setSelectedGuide(filename);
+        onGuideChange?.(filename);
         try {
             setIsLoadingContent(true);
             // Fetch content
@@ -69,6 +86,22 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
             if (!resContent.ok) throw new Error('Failed to load content');
             const dataContent = await resContent.json();
             setContent(dataContent.content);
+
+            // Build Table of Contents from headings
+            const headingRegex = /^(#{1,3})\s+(.+)$/gm;
+            const items: TocItem[] = [];
+            let match;
+            while ((match = headingRegex.exec(dataContent.content)) !== null) {
+                const level = match[1].length;
+                const text = match[2].trim().replace(/[*_`]/g, '');
+                const id = text
+                    .toLowerCase()
+                    .replace(/[^\w\u3000-\u9fff\uff00-\uffef]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+                items.push({ id, text, level });
+            }
+            setToc(items);
+            setActiveTocId(items[0]?.id ?? null);
 
             // Fetch user specfic notes
             if (currentUser?.userId) {
@@ -88,6 +121,19 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
             setNotes('');
         } finally {
             setIsLoadingContent(false);
+            // Apply pending scroll restoration AFTER content renders
+            if (pendingScrollRef.current !== null) {
+                const targetTop = pendingScrollRef.current;
+                pendingScrollRef.current = null; // consume it (only apply once)
+                // RAF+timeout ensures the DOM has repainted with new content
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        if (markdownContainerRef.current) {
+                            markdownContainerRef.current.scrollTop = targetTop;
+                        }
+                    }, 50);
+                });
+            }
         }
     };
 
@@ -167,6 +213,17 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
         return () => {
             if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         };
+    }, []);
+
+    // Register the markdown content panel in the global scroll registry
+    useEffect(() => {
+        scrollRegistry.register('selfStudy-markdown', {
+            getScrollTop: () => markdownContainerRef.current?.scrollTop ?? 0,
+            setScrollTop: (top) => {
+                if (markdownContainerRef.current) markdownContainerRef.current.scrollTop = top;
+            },
+        });
+        return () => scrollRegistry.unregister('selfStudy-markdown');
     }, []);
 
     // Keyboard navigation for sectors
@@ -280,7 +337,7 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
                         )}
                         title={showSectors ? "リストを非表示" : "リストを表示"}
                     >
-                        <ListTree className="w-4 h-4" />
+                        <List className="w-4 h-4" />
                         <span className="text-xs font-bold hidden sm:block">リスト</span>
                         <div className="hidden sm:flex items-center justify-center w-5 h-5 rounded bg-slate-900 border border-white/10 text-[10px] font-black text-slate-500 ml-1">
                             [
@@ -305,42 +362,65 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
                                 <div className="flex items-center justify-center p-8">
                                     <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
                                 </div>
-                            ) : (
-                                guides.map((guide, index) => {
-                                    const shortcut = getShortcutLabel(index);
+                            ) : (() => {
+                                // Separate main guides from summary guides (_概要.md)
+                                const mainGuides = guides.filter(g => !g.includes('_概要.'));
+                                const summaryGuides = guides.filter(g => g.includes('_概要.'));
+                                let mainIndex = 0;
+                                return mainGuides.map((guide) => {
+                                    const shortcut = getShortcutLabel(mainIndex++);
+                                    // Find corresponding summary file
+                                    const base = guide.replace('.md', '');
+                                    const summaryFile = summaryGuides.find(s => s.startsWith(base + '_概要'));
 
                                     return (
-                                        <button
-                                            key={guide}
-                                            onClick={() => handleSelectGuide(guide)}
-                                            className={clsx(
-                                                "flex items-center justify-between p-4 rounded-xl text-left transition-all border shrink-0 group/btn",
-                                                selectedGuide === guide
-                                                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
-                                                    : "bg-slate-900/50 border-white/[0.04] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-3 truncate">
-                                                <FileText className={clsx("w-4 h-4 shrink-0 transition-colors", selectedGuide === guide ? "text-emerald-500" : "text-slate-500 group-hover/btn:text-emerald-500/50")} />
-                                                <span className="text-xs font-bold truncate">
-                                                    {guide.replace('.md', '')}
-                                                </span>
-                                            </div>
-
-                                            {shortcut && (
-                                                <div className={clsx(
-                                                    "w-5 h-5 rounded flex justify-center items-center text-[10px] font-black shrink-0 transition-all",
+                                        <div key={guide} className="flex flex-col gap-0.5">
+                                            <button
+                                                onClick={() => handleSelectGuide(guide)}
+                                                className={clsx(
+                                                    "flex items-center justify-between p-4 rounded-xl text-left transition-all border shrink-0 group/btn",
                                                     selectedGuide === guide
-                                                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                                        : "bg-slate-800 text-slate-500 border border-white/5 opacity-0 group-hover/btn:opacity-100"
-                                                )}>
-                                                    {shortcut}
+                                                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                                                        : "bg-slate-900/50 border-white/[0.04] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-3 truncate">
+                                                    <FileText className={clsx("w-4 h-4 shrink-0 transition-colors", selectedGuide === guide ? "text-emerald-500" : "text-slate-500 group-hover/btn:text-emerald-500/50")} />
+                                                    <span className="text-xs font-bold truncate">
+                                                        {guide.replace('.md', '')}
+                                                    </span>
                                                 </div>
+                                                {shortcut && (
+                                                    <div className={clsx(
+                                                        "w-5 h-5 rounded flex justify-center items-center text-[10px] font-black shrink-0 transition-all",
+                                                        selectedGuide === guide
+                                                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                                            : "bg-slate-800 text-slate-500 border border-white/5 opacity-0 group-hover/btn:opacity-100"
+                                                    )}>
+                                                        {shortcut}
+                                                    </div>
+                                                )}
+                                            </button>
+
+                                            {/* Summary sub-button */}
+                                            {summaryFile && (
+                                                <button
+                                                    onClick={() => handleSelectGuide(summaryFile)}
+                                                    className={clsx(
+                                                        "ml-4 flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-all border text-[10px] font-bold",
+                                                        selectedGuide === summaryFile
+                                                            ? "bg-violet-500/15 border-violet-500/30 text-violet-300"
+                                                            : "bg-slate-900/30 border-white/[0.03] text-slate-500 hover:bg-slate-800/60 hover:text-violet-400"
+                                                    )}
+                                                >
+                                                    <span className="text-[8px] opacity-60">📋</span>
+                                                    <span>概要・用語集</span>
+                                                </button>
                                             )}
-                                        </button>
+                                        </div>
                                     );
-                                })
-                            )}
+                                });
+                            })()}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -355,24 +435,87 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
                                 <Book className="w-4 h-4 text-slate-500" />
                                 {selectedGuide ? selectedGuide.replace('.md', '') : 'テキストを選択'}
                             </h2>
-                            <button
-                                onClick={() => setShowNotes(!showNotes)}
-                                className={clsx(
-                                    "p-1.5 rounded-lg transition-all border flex items-center gap-2",
-                                    showNotes
-                                        ? "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
-                                        : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
-                                )}
-                                title={showNotes ? "メモを非表示" : "メモを表示"}
-                            >
-                                <span className="text-[10px] font-black tracking-widest uppercase hidden sm:block pl-1">Note</span>
-                                <div className="hidden sm:flex items-center justify-center w-5 h-5 rounded bg-slate-900 border border-white/10 text-[10px] font-black text-slate-500">
-                                    ]
-                                </div>
-                                <PanelsTopLeft className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {/* TOC Toggle */}
+                                <button
+                                    onClick={() => setShowToc(!showToc)}
+                                    className={clsx(
+                                        "p-1.5 rounded-lg transition-all border flex items-center gap-2",
+                                        showToc
+                                            ? "bg-violet-500/15 text-violet-400 border-violet-500/20 hover:bg-violet-500/20"
+                                            : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700"
+                                    )}
+                                    title="目次を表示/非表示"
+                                >
+                                    <span className="text-[10px] font-black tracking-widest uppercase hidden sm:block pl-1">TOC</span>
+                                    <List className="w-4 h-4" />
+                                </button>
+                                {/* Notes Toggle */}
+                                <button
+                                    onClick={() => setShowNotes(!showNotes)}
+                                    className={clsx(
+                                        "p-1.5 rounded-lg transition-all border flex items-center gap-2",
+                                        showNotes
+                                            ? "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                                    )}
+                                    title={showNotes ? "メモを非表示" : "メモを表示"}
+                                >
+                                    <span className="text-[10px] font-black tracking-widest uppercase hidden sm:block pl-1">Note</span>
+                                    <div className="hidden sm:flex items-center justify-center w-5 h-5 rounded bg-slate-900 border border-white/10 text-[10px] font-black text-slate-500">
+                                        ]
+                                    </div>
+                                    <PanelsTopLeft className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
+
+                        {/* TOC Panel */}
+                        <AnimatePresence>
+                            {showToc && toc.length > 0 && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                                    className="overflow-hidden shrink-0 border-b border-violet-500/10 bg-slate-950/80"
+                                >
+                                    <div className="flex flex-wrap gap-1 p-3 max-h-[200px] overflow-y-auto custom-scrollbar">
+                                        {toc.map(item => (
+                                            <button
+                                                key={`${item.id}-${item.level}`}
+                                                onClick={() => {
+                                                    const el = document.getElementById(`heading-${item.id}`);
+                                                    if (el && markdownContainerRef.current) {
+                                                        markdownContainerRef.current.scrollTo({ top: el.offsetTop - 24, behavior: 'smooth' });
+                                                        setActiveTocId(item.id);
+                                                    }
+                                                }}
+                                                className={clsx(
+                                                    'flex items-center gap-1 px-2 py-1 rounded-lg text-left transition-all border text-[10px] font-bold leading-tight',
+                                                    item.level === 1 && 'border-violet-500/20 bg-violet-500/5 hover:bg-violet-500/15',
+                                                    item.level === 2 && 'ml-2 border-blue-500/15 bg-blue-500/5 hover:bg-blue-500/15',
+                                                    item.level === 3 && 'ml-4 border-slate-600/20 bg-slate-800/40 hover:bg-slate-700/40',
+                                                    activeTocId === item.id
+                                                        ? 'text-violet-300 border-violet-400/40 bg-violet-500/20'
+                                                        : item.level === 1 ? 'text-violet-400/80'
+                                                            : item.level === 2 ? 'text-blue-400/70'
+                                                                : 'text-slate-400'
+                                                )}
+                                            >
+                                                <span className="text-[8px] opacity-40 shrink-0">
+                                                    {item.level === 1 ? '▶' : item.level === 2 ? '▷' : '·'}
+                                                </span>
+                                                <span className="line-clamp-2">{item.text}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
                         <div ref={markdownContainerRef} className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+
                             {isLoadingContent ? (
                                 <div className="h-full flex items-center justify-center">
                                     <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
@@ -384,7 +527,26 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack }) => {
                             prose-code:bg-slate-800 prose-code:text-emerald-300 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none
                             prose-pre:bg-slate-900 prose-pre:border prose-pre:border-slate-800"
                                 >
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                            h1: ({ children }) => {
+                                                const text = String(children).replace(/[*_`]/g, '');
+                                                const id = text.toLowerCase().replace(/[^\w\u3000-\u9fff\uff00-\uffef]+/g, '-').replace(/^-+|-+$/g, '');
+                                                return <h1 id={`heading-${id}`} className="scroll-mt-4">{children}</h1>;
+                                            },
+                                            h2: ({ children }) => {
+                                                const text = String(children).replace(/[*_`]/g, '');
+                                                const id = text.toLowerCase().replace(/[^\w\u3000-\u9fff\uff00-\uffef]+/g, '-').replace(/^-+|-+$/g, '');
+                                                return <h2 id={`heading-${id}`} className="scroll-mt-4">{children}</h2>;
+                                            },
+                                            h3: ({ children }) => {
+                                                const text = String(children).replace(/[*_`]/g, '');
+                                                const id = text.toLowerCase().replace(/[^\w\u3000-\u9fff\uff00-\uffef]+/g, '-').replace(/^-+|-+$/g, '');
+                                                return <h3 id={`heading-${id}`} className="scroll-mt-4">{children}</h3>;
+                                            },
+                                        }}
+                                    >
                                         {content}
                                     </ReactMarkdown>
                                 </div>

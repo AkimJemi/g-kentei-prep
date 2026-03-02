@@ -21,12 +21,15 @@ import { Toast } from './components/Toast';
 import { NotificationView } from './components/NotificationView';
 import { FlashcardView } from './components/FlashcardView';
 import { QuestionListView } from './components/QuestionListView';
+import { SavePointButton } from './components/SavePointButton';
 import { Cpu, Database, Clock, BarChart3, Layout as LayoutIcon, Github, Shield, Radio, LogOut, Settings, Bell, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useDashboardStore } from './store/useDashboardStore';
 import { useSubscriptionStore } from './store/useSubscriptionStore';
 import { SupportModal } from './components/SupportModal';
+import { scrollRegistry } from './utils/scrollRegistry';
+import { useSavePointStore } from './store/useSavePointStore';
 
 export default function App() {
   const { t } = useLanguageStore();
@@ -41,6 +44,8 @@ export default function App() {
   const [view, setView] = useState<'dashboard' | 'study' | 'studySector' | 'selfStudy' | 'history' | 'quiz' | 'stats' | 'admin' | 'contact' | 'submit' | 'notifications' | 'flashcards' | 'questionList'>('dashboard');
   const [questionListCategory, setQuestionListCategory] = useState<{ id: string; title: string } | null>(null);
   const [quizReturnView, setQuizReturnView] = useState<'studySector' | 'questionList'>('studySector');
+  const [selfStudySelectedGuide, setSelfStudySelectedGuide] = useState<string | null>(null);
+  const [selfStudyInitialScrollTop, setSelfStudyInitialScrollTop] = useState<number | undefined>(undefined);
   const scrollContainerRef = useRef<HTMLElement>(null);
   const [isBooting, setIsBooting] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | null; errorId?: string }>({ message: '', type: null });
@@ -166,6 +171,15 @@ export default function App() {
     if ('scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
+  }, []);
+
+  // Register main scroll container in the global scroll registry
+  useEffect(() => {
+    scrollRegistry.register('main', {
+      getScrollTop: () => scrollContainerRef.current?.scrollTop ?? 0,
+      setScrollTop: (top) => { if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = top; },
+    });
+    return () => scrollRegistry.unregister('main');
   }, []);
 
   useEffect(() => {
@@ -351,7 +365,29 @@ export default function App() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* Save Point Button */}
+            <SavePointButton
+              currentView={view}
+              questionListCategory={questionListCategory}
+              selfStudyGuide={selfStudySelectedGuide}
+              onRestoreView={(restoreView, extraState) => {
+                if (extraState.questionListCategory !== undefined) {
+                  setQuestionListCategory(extraState.questionListCategory ?? null);
+                }
+                if (extraState.selfStudyGuide !== undefined) {
+                  setSelfStudySelectedGuide(extraState.selfStudyGuide ?? null);
+                }
+                // Pass the selfStudy markdown scroll position directly to SelfStudyView
+                // so it can apply it after content finishes loading
+                const savedPositions = useSavePointStore.getState().savePoint?.scrollPositions;
+                if (savedPositions?.['selfStudy-markdown'] !== undefined) {
+                  setSelfStudyInitialScrollTop(savedPositions['selfStudy-markdown']);
+                }
+                handleNavigate(restoreView as any);
+              }}
+              onToast={(message, type) => showToast(message, type)}
+            />
             {isAuthenticated ? (
               <>
                 {currentUser && (
@@ -430,7 +466,12 @@ export default function App() {
                 onNavigateSector={() => handleNavigate('studySector')}
                 onNavigateSelfStudy={() => handleNavigate('selfStudy')}
               />}
-              {view === 'selfStudy' && <SelfStudyView onBack={() => handleNavigate('study')} />}
+              {view === 'selfStudy' && <SelfStudyView
+                onBack={() => handleNavigate('study')}
+                initialGuide={selfStudySelectedGuide}
+                onGuideChange={setSelfStudySelectedGuide}
+                initialScrollTop={selfStudyInitialScrollTop}
+              />}
               {view === 'studySector' && <StudySectorView
                 onStartPractice={async (cat) => {
                   try {
