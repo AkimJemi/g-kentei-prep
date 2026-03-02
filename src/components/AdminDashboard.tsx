@@ -62,12 +62,14 @@ export const AdminDashboard: React.FC = () => {
     const [todos, setTodos] = useState<AdminTodo[]>([]);
     const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
     const [notifications, setAppNotifications] = useState<{ id: string, type: 'success' | 'error' | 'info', message: string }[]>([]);
+
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, title?: string, message: string, onConfirm: () => (void | Promise<void>) } | null>(null);
 
     // Modals State
     const [replyModal, setReplyModal] = useState<{ isOpen: boolean, messageId: number, replyText: string } | null>(null);
     const [questionModal, setQuestionModal] = useState<{ isOpen: boolean, data: any } | null>(null);
     const [noteModal, setNoteModal] = useState<{ isOpen: boolean, data: any } | null>(null);
+    const [taskModal, setTaskModal] = useState<{ isOpen: boolean, data: AdminTodo } | null>(null);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [searchInputValue, setSearchInputValue] = useState('');
@@ -79,6 +81,26 @@ export const AdminDashboard: React.FC = () => {
     const [totalFilteredItems, setTotalFilteredItems] = useState(0);
     const [filters, setFilters] = useState<Record<string, string>>({});
 
+    // Centralized tab change to ensure state is reset
+    const handleTabChange = (tabId: typeof activeTab) => {
+        if (tabId === activeTab) return;
+        setActiveTab(tabId);
+        // Reset counters and filters for the new tab
+        setTotalFilteredItems(0);
+        setTotalPages(1);
+        setPage(1);
+        setSearchQuery('');
+        setSearchInputValue('');
+        setFilters({});
+        // Clear specific lists to avoid showing previous tab's data
+        setUsers([]);
+        setMessages([]);
+        setSubmissions([]);
+        setQuestions([]);
+        setTodos([]);
+        setErrorLogs([]);
+    };
+
     const addNotification = (type: 'success' | 'error' | 'info', message: string) => {
         const id = Math.random().toString(36).substr(2, 9);
         setAppNotifications(prev => [...prev, { id, type, message }]);
@@ -89,6 +111,10 @@ export const AdminDashboard: React.FC = () => {
 
     const fetchData = async () => {
         setIsLoading(true);
+        // Reset counters to avoid stale data display during tab switch
+        setTotalFilteredItems(0);
+        setTotalPages(1);
+
         try {
             // Fetch Admin Data with individual error handling
             const fetchSafe = async (url: string, params: any = {}, defaultValue: any = []) => {
@@ -182,7 +208,7 @@ export const AdminDashboard: React.FC = () => {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
             const num = parseInt(e.key);
             if (num >= 0 && num <= 8 && tabIds[num]) {
-                setActiveTab(tabIds[num] as any);
+                handleTabChange(tabIds[num] as any);
             }
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -275,6 +301,26 @@ export const AdminDashboard: React.FC = () => {
         } catch (e) {
             console.error('Add todo error:', e);
             addNotification('error', e instanceof Error ? e.message : 'タスクの追加に失敗しました');
+        }
+    };
+
+    const handleSaveTodo = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!taskModal) return;
+        const { data } = taskModal;
+        try {
+            const res = await fetch(`/api/admin/todos/${data.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task: data.task, priority: data.priority })
+            });
+            if (res.ok) {
+                setTodos(prev => prev.map(t => t.id === data.id ? { ...t, ...data } : t));
+                addNotification('success', 'タスクを更新しました');
+                setTaskModal(null);
+            }
+        } catch {
+            addNotification('error', 'タスクの更新に失敗しました');
         }
     };
 
@@ -482,7 +528,7 @@ export const AdminDashboard: React.FC = () => {
         }
     };
 
-    if (isLoading) return <div className="p-12 text-center animate-pulse text-accent font-black uppercase tracking-widest">データ読み込み中...</div>;
+    // if (isLoading) return <div className="p-12 text-center animate-pulse text-accent font-black uppercase tracking-widest">データ読み込み中...</div>;
 
     return (
         <div className="flex h-[calc(100vh-80px)] bg-slate-950/20 overflow-hidden">
@@ -509,7 +555,7 @@ export const AdminDashboard: React.FC = () => {
                     ].map((tab) => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
+                            onClick={() => handleTabChange(tab.id as any)}
                             className={clsx(
                                 "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative group overflow-hidden",
                                 activeTab === tab.id
@@ -530,6 +576,14 @@ export const AdminDashboard: React.FC = () => {
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-black animate-pulse">
                                     {adminStats.pendingSubmissions}
                                 </span>
+                            )}
+
+                            {/* [SPA Protocol] Sidebar Selection Overlay while loading */}
+                            {activeTab === tab.id && isLoading && (
+                                <motion.div
+                                    layoutId="nav-active-loading"
+                                    className="absolute inset-0 bg-accent/20 animate-pulse border-y border-accent/20"
+                                />
                             )}
 
                             {/* Shortcut hint */}
@@ -1203,17 +1257,37 @@ export const AdminDashboard: React.FC = () => {
                                                             {todo.createdAt ? new Date(todo.createdAt).toLocaleDateString('ja-JP') : ''}
                                                         </span>
                                                         {todo.status !== 'completed' && (
-                                                            <span className="px-2 py-0.5 bg-accent/10 text-accent text-[8px] font-black uppercase rounded">In Progress</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-2 py-0.5 bg-accent/10 text-accent text-[8px] font-black uppercase rounded">In Progress</span>
+                                                                <span className={clsx(
+                                                                    "px-2 py-0.5 text-[8px] font-black uppercase rounded border transition-colors",
+                                                                    todo.priority === 'high' ? "bg-rose-500/10 text-rose-500 border-rose-500/20" :
+                                                                        todo.priority === 'medium' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                                                                            "bg-slate-500/10 text-slate-500 border-slate-500/20"
+                                                                )}>
+                                                                    {todo.priority === 'high' ? 'High' : todo.priority === 'medium' ? 'Medium' : 'Low'}
+                                                                </span>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>
 
-                                                <button
-                                                    onClick={() => handleDeleteTodo(todo.id)}
-                                                    className="p-3 text-slate-700 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                                                >
-                                                    <Trash2 className="w-5 h-5" />
-                                                </button>
+                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => setTaskModal({ isOpen: true, data: { ...todo } })}
+                                                        className="p-3 text-slate-400 hover:text-accent transition-colors"
+                                                        title="編集"
+                                                    >
+                                                        <UserCog className="w-5 h-5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteTodo(todo.id)}
+                                                        className="p-3 text-slate-700 hover:text-red-500 transition-colors"
+                                                        title="削除"
+                                                    >
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </button>
+                                                </div>
                                             </motion.div>
                                         ))
                                     )}
@@ -1566,6 +1640,45 @@ export const AdminDashboard: React.FC = () => {
                     </motion.div>
                 ))}
             </div>
+
+            {/* Task Form Modal */}
+            {
+                taskModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-slate-900 border border-slate-800 rounded-3xl p-8 max-w-lg w-full shadow-2xl">
+                            <h3 className="text-2xl font-black text-white italic mb-6 uppercase tracking-tight">タスク・エディタ</h3>
+                            <form onSubmit={handleSaveTodo} className="space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">課題内容</label>
+                                    <textarea
+                                        rows={3}
+                                        required
+                                        value={taskModal.data.task}
+                                        onChange={(e) => setTaskModal(prev => prev ? { ...prev, data: { ...prev.data, task: e.target.value } } : null)}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:outline-none focus:border-accent transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">優先度</label>
+                                    <select
+                                        value={taskModal.data.priority}
+                                        onChange={(e) => setTaskModal(prev => prev ? { ...prev, data: { ...prev.data, priority: e.target.value } } : null)}
+                                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:outline-none focus:border-accent transition-all"
+                                    >
+                                        <option value="low">低 (Low Priority)</option>
+                                        <option value="medium">中 (Medium Priority)</option>
+                                        <option value="high">高 (High Priority)</option>
+                                    </select>
+                                </div>
+                                <div className="flex justify-end gap-3 pt-6">
+                                    <button type="button" onClick={() => setTaskModal(null)} className="px-6 py-2 text-slate-500 font-bold hover:text-white transition-colors">キャンセル</button>
+                                    <button type="submit" className="px-8 py-2 bg-accent text-primary font-black uppercase rounded-xl shadow-lg shadow-accent/20 hover:bg-sky-400 transition-all">保存を実行</button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )
+            }
 
             {/* Confirm Modal */}
             {
