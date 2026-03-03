@@ -77,10 +77,16 @@ export const SavePointButton: React.FC<SavePointButtonProps> = ({
             questionListCategory: savePoint.questionListCategory,
             selfStudyGuide: savePoint.selfStudyGuide,
         });
-        // Restore ALL scroll positions after view transition renders
+        // Restore scroll positions after view transition renders.
+        // Exclude 'selfStudy-markdown': SelfStudyView handles its own scroll
+        // restoration via pendingScrollRef (after async content loading completes).
+        // Double-applying would race against the content render and cause drift.
         const positions = savePoint.scrollPositions ?? { main: savePoint.scrollTop };
+        const positionsWithoutSelfStudy = Object.fromEntries(
+            Object.entries(positions).filter(([key]) => key !== 'selfStudy-markdown')
+        );
         setTimeout(() => {
-            scrollRegistry.restoreAll(positions);
+            scrollRegistry.restoreAll(positionsWithoutSelfStudy);
         }, 300);
         onToast(`⏱ ${savePoint.label} に戻りました`, 'success');
         setDropdownOpen(false);

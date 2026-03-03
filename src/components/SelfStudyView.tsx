@@ -121,18 +121,28 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack, initialGui
             setNotes('');
         } finally {
             setIsLoadingContent(false);
-            // Apply pending scroll restoration AFTER content renders
+            // Apply pending scroll restoration AFTER content renders.
+            // Retry up to 5 times every 100ms to handle the case where React
+            // has not yet expanded the DOM (making scrollTop == target impossible
+            // when the content height is still too small on the first attempt).
             if (pendingScrollRef.current !== null) {
                 const targetTop = pendingScrollRef.current;
-                pendingScrollRef.current = null; // consume it (only apply once)
-                // RAF+timeout ensures the DOM has repainted with new content
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        if (markdownContainerRef.current) {
-                            markdownContainerRef.current.scrollTop = targetTop;
-                        }
-                    }, 50);
-                });
+                pendingScrollRef.current = null; // consume it
+
+                const tryScroll = (attemptsLeft: number) => {
+                    if (!markdownContainerRef.current) return;
+                    markdownContainerRef.current.scrollTop = targetTop;
+                    // If the container's scrollable height wasn't tall enough yet,
+                    // scrollTop will be clamped to a smaller value — retry.
+                    if (
+                        attemptsLeft > 0 &&
+                        Math.abs(markdownContainerRef.current.scrollTop - targetTop) > 8
+                    ) {
+                        setTimeout(() => tryScroll(attemptsLeft - 1), 100);
+                    }
+                };
+
+                requestAnimationFrame(() => setTimeout(() => tryScroll(5), 80));
             }
         }
     };
@@ -364,62 +374,114 @@ export const SelfStudyView: React.FC<SelfStudyViewProps> = ({ onBack, initialGui
                                 </div>
                             ) : (() => {
                                 // Separate main guides from summary guides (_概要.md)
-                                const mainGuides = guides.filter(g => !g.includes('_概要.'));
-                                const summaryGuides = guides.filter(g => g.includes('_概要.'));
+                                // Also detect the pinned master summary (starts with '00_' and contains '_概要')
+                                const pinnedGuide = guides.find(g => g.startsWith('00_') && g.includes('_概要'));
+                                const mainGuides = guides.filter(g => !g.includes('_概要.') && !g.startsWith('00_'));
+                                const summaryGuides = guides.filter(g => g.includes('_概要.') && !g.startsWith('00_'));
                                 let mainIndex = 0;
-                                return mainGuides.map((guide) => {
-                                    const shortcut = getShortcutLabel(mainIndex++);
-                                    // Find corresponding summary file
-                                    const base = guide.replace('.md', '');
-                                    const summaryFile = summaryGuides.find(s => s.startsWith(base + '_概要'));
-
-                                    return (
-                                        <div key={guide} className="flex flex-col gap-0.5">
+                                return (
+                                    <>
+                                        {/* Pinned master summary card */}
+                                        {pinnedGuide && (
                                             <button
-                                                onClick={() => handleSelectGuide(guide)}
+                                                onClick={() => handleSelectGuide(pinnedGuide)}
                                                 className={clsx(
-                                                    "flex items-center justify-between p-4 rounded-xl text-left transition-all border shrink-0 group/btn",
-                                                    selectedGuide === guide
-                                                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
-                                                        : "bg-slate-900/50 border-white/[0.04] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                                                    "flex items-center gap-3 p-3.5 rounded-xl text-left transition-all border shrink-0 group/pin relative overflow-hidden",
+                                                    selectedGuide === pinnedGuide
+                                                        ? "bg-amber-500/15 border-amber-400/40 text-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.15)]"
+                                                        : "bg-amber-500/5 border-amber-500/20 text-amber-400/70 hover:bg-amber-500/10 hover:border-amber-400/30 hover:text-amber-300"
                                                 )}
                                             >
-                                                <div className="flex items-center gap-3 truncate">
-                                                    <FileText className={clsx("w-4 h-4 shrink-0 transition-colors", selectedGuide === guide ? "text-emerald-500" : "text-slate-500 group-hover/btn:text-emerald-500/50")} />
-                                                    <span className="text-xs font-bold truncate">
-                                                        {guide.replace('.md', '')}
-                                                    </span>
-                                                </div>
-                                                {shortcut && (
+                                                {/* Subtle shimmer */}
+                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/5 to-transparent -translate-x-full group-hover/pin:translate-x-full transition-transform duration-700 ease-in-out" />
+                                                <div className="relative flex items-center gap-3 w-full">
                                                     <div className={clsx(
-                                                        "w-5 h-5 rounded flex justify-center items-center text-[10px] font-black shrink-0 transition-all",
-                                                        selectedGuide === guide
-                                                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                                            : "bg-slate-800 text-slate-500 border border-white/5 opacity-0 group-hover/btn:opacity-100"
+                                                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-base transition-all",
+                                                        selectedGuide === pinnedGuide
+                                                            ? "bg-amber-400/20 shadow-[0_0_12px_rgba(251,191,36,0.3)]"
+                                                            : "bg-amber-500/10"
                                                     )}>
-                                                        {shortcut}
+                                                        🗂️
                                                     </div>
-                                                )}
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-[11px] font-black uppercase tracking-widest truncate">全章まとめ</span>
+                                                        <span className="text-[9px] font-bold opacity-60 truncate">概要・用語集 01〜11章</span>
+                                                    </div>
+                                                    <div className={clsx(
+                                                        "ml-auto shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded border",
+                                                        selectedGuide === pinnedGuide
+                                                            ? "bg-amber-400/20 border-amber-400/30 text-amber-300"
+                                                            : "bg-amber-500/10 border-amber-500/20 text-amber-500/60"
+                                                    )}>PIN</div>
+                                                </div>
                                             </button>
+                                        )}
 
-                                            {/* Summary sub-button */}
-                                            {summaryFile && (
-                                                <button
-                                                    onClick={() => handleSelectGuide(summaryFile)}
-                                                    className={clsx(
-                                                        "ml-4 flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-all border text-[10px] font-bold",
-                                                        selectedGuide === summaryFile
-                                                            ? "bg-violet-500/15 border-violet-500/30 text-violet-300"
-                                                            : "bg-slate-900/30 border-white/[0.03] text-slate-500 hover:bg-slate-800/60 hover:text-violet-400"
+                                        {/* Divider */}
+                                        {pinnedGuide && (
+                                            <div className="flex items-center gap-2 px-1 py-0.5">
+                                                <div className="flex-1 h-px bg-white/[0.04]" />
+                                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">章別</span>
+                                                <div className="flex-1 h-px bg-white/[0.04]" />
+                                            </div>
+                                        )}
+
+                                        {/* Chapter list */}
+                                        {mainGuides.map((guide) => {
+                                            const shortcut = getShortcutLabel(mainIndex++);
+                                            const base = guide.replace('.md', '');
+                                            const summaryFile = summaryGuides.find(s => s.startsWith(base + '_概要'));
+
+                                            return (
+                                                <div key={guide} className="flex flex-col gap-0.5">
+                                                    <button
+                                                        onClick={() => handleSelectGuide(guide)}
+                                                        className={clsx(
+                                                            "flex items-center justify-between p-4 rounded-xl text-left transition-all border shrink-0 group/btn",
+                                                            selectedGuide === guide
+                                                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                                                                : "bg-slate-900/50 border-white/[0.04] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center gap-3 truncate">
+                                                            <FileText className={clsx("w-4 h-4 shrink-0 transition-colors", selectedGuide === guide ? "text-emerald-500" : "text-slate-500 group-hover/btn:text-emerald-500/50")} />
+                                                            <span className="text-xs font-bold truncate">
+                                                                {guide.replace('.md', '')}
+                                                            </span>
+                                                        </div>
+                                                        {shortcut && (
+                                                            <div className={clsx(
+                                                                "w-5 h-5 rounded flex justify-center items-center text-[10px] font-black shrink-0 transition-all",
+                                                                selectedGuide === guide
+                                                                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                                                    : "bg-slate-800 text-slate-500 border border-white/5 opacity-0 group-hover/btn:opacity-100"
+                                                            )}>
+                                                                {shortcut}
+                                                            </div>
+                                                        )}
+                                                    </button>
+
+                                                    {/* Summary sub-button */}
+                                                    {summaryFile && (
+                                                        <button
+                                                            onClick={() => handleSelectGuide(summaryFile)}
+                                                            className={clsx(
+                                                                "ml-4 flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-all border text-[10px] font-bold",
+                                                                selectedGuide === summaryFile
+                                                                    ? "bg-violet-500/15 border-violet-500/30 text-violet-300"
+                                                                    : "bg-slate-900/30 border-white/[0.03] text-slate-500 hover:bg-slate-800/60 hover:text-violet-400"
+                                                            )}
+                                                        >
+                                                            <span className="text-[8px] opacity-60">📋</span>
+                                                            <span>概要・用語集</span>
+                                                        </button>
                                                     )}
-                                                >
-                                                    <span className="text-[8px] opacity-60">📋</span>
-                                                    <span>概要・用語集</span>
-                                                </button>
-                                            )}
-                                        </div>
-                                    );
-                                });
+                                                </div>
+                                            );
+                                        })}
+                                    </>
+                                );
+
                             })()}
                         </motion.div>
                     )}
