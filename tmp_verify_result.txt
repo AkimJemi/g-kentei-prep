@@ -1,0 +1,38 @@
+Files: AIに必要な数理・統計知識①+.txt | AIに必要な数理・統計知識②.txt | AIに関する法律と契約.txt | AI倫理・AIガバナンス.txt | ディープラーニングの応用例.txt | ディープラーニングの概要.txt | ディープラーニングの社会実装に向けて.txt | ディープラーニングの要素技術.txt | 人工知能とは.txt | 人工知能をめぐる動向.txt | 機械学習の具体的手法.txt
+
+Ch10 [AI倫理・AIガバナンス.txt] 13424chars
+  OK: ハードロー, ソフトロー, FAT, ELSI, OECD, バイアス, LAWS, クライシス
+  MISS: EU AI Act, プライバシー・バイ・デザイン
+
+Ch11 [AIに関する法律と契約.txt] 13182chars
+  OK: 著作権, GDPR, 営業秘密, 要配慮, 特許, 意匠
+  MISS: 著作人格権, 忘れられる権利, 30条の4, 個人情報, 匿名加工, 仮名加工, DPO
+
+Ch01 [人工知能とは.txt] 11514chars
+  OK: ダートマス, マッカーシー, チューリング, 中国語の部屋, カーツワイル, シンギュラリティ, フレーム問題, CVPR, NeurIPS, 機械翻訳, GNMT, AI効果
+  MISS: 組み合わせ爆発
+Ch02: NOT FOUND for "人工知能をめぐる"
+
+Ch03 [AIに必要な数理・統計知識①+.txt] 6752chars
+  OK: 正規分布
+  MISS: ベイズ, エントロピー, KLダイバージェンス, 固有値, ベルヌーイ, ポアソン, 内積
+
+Ch04 [AIに必要な数理・統計知識②.txt] 3602chars
+  OK: 帰無仮説
+  MISS: 勾配降下法, Adam, SGD, MCMC, DAG, p値, 有意水準, 第1種, 局所最適, 鞍点, Momentum, AdaGrad, RMSprop
+
+Ch06 [ディープラーニングの概要.txt] 14835chars
+  OK: ReLU, ドロップアウト, 誤差逆伝播, シグモイド, ソフトマックス
+  MISS: バッチ正規化, LSTM, GRU, 畳み込み, プーリング
+
+Ch07 [ディープラーニングの要素技術.txt] 19454chars
+  OK: 
+  MISS: Transformer, BERT, GPT, RLHF, GAN, 拡散モデル, Word2Vec, CBOW, Skip-gram, DQN, AlphaGo, VAE, LoRA, RAG
+
+Ch08 [ディープラーニングの応用例.txt] 47321chars
+  OK: ResNet, YOLO, CLIP, Pix2Pix, Cycle GAN, 基盤モデル, SHAP, LIME, 蒸留, 宝くじ, VGGNet, Grad-CAM, プルーニング, NeRF, Zero Shot
+  MISS: 量子化
+
+Ch09 [ディープラーニングの社会実装に向けて.txt] 16582chars
+  OK: 
+  MISS: MLOps, データドリフト, A/Bテスト, シャドウ, TPU, SAEレベル, One-Hot, フィーチャーストア, CI/CD, カナリア
